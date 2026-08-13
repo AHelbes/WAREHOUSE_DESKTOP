@@ -1,0 +1,154 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.login {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  width: 100%;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  background: white;
+  flex-shrink: 0;
+}
+
+.logo {
+  width: 275px;
+  height: auto;
+  object-fit: contain;
+}
+
+.background {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.backgroundOver {
+  position: absolute;
+  inset: 0;
+  background: rgba(190, 220, 230, 0.22);
+  z-index: 1;
+}
+
+.loginCard {
+  position: relative;
+  z-index: 2;
+  width: 520px;
+  min-height: 320px;
+  padding: 55px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #011c40;
+  border-radius: 45px;
+}
+
+.loginInput {
+  width: 330px;
+  height: 50px;
+  padding: 0 18px;
+    border: 1px solid #031a35;
+
+  border-radius: 9px;
+  outline: none;
+  background: #26658C;
+  color: #dadada;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+}
+
+.loginInput::placeholder {
+  color: #dadada;
+  opacity: 1;
+}
+
+.loginInput:focus {
+  border-color: #4bb5d6;
+  background: #174a7b;
+}
+
+.loginButton {
+  width: 200px;
+  height: 37px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #26658C;
+  color: #dadada;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.loginButton:hover {
+  background: #1f5678;
+}
+
+.loginButton:active {
+  transform: scale(0.98);
+}
+
+.loginError {
+  margin: 0;
+  color: #ffb3b3;
+  font-size: 14px;
+  text-align: center;
+}
+
+.blankPage {
+  width: 100vw;
+  height: 100vh;
+  background: white;
+}
+
+@media (max-width: 600px) {
+  .adventus-logo {
+    width: 220px;
+  }
+
+  .loginCard {
+    width: 85%;
+    padding: 40px 35px;
+    border-radius: 35px;
+  }
+
+  .loginInput {
+    font-size: 18px;
+  }
+
+  .loginButton {
+    width: 70%;
+  }
+}
