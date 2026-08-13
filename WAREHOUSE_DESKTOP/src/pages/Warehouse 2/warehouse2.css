@@ -1,0 +1,417 @@
+.page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+  background: white;
+}
+
+.page .header {
+  width: 100%;
+  height: 68px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px 0 10px;
+  background: white;
+}
+
+.page .logo {
+  width: 275px;
+  height: auto;
+  object-fit: contain;
+  margin-right: 30px;
+}
+
+.page .search {
+  width: 390px;
+  height: 40px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 22px;
+  outline: none;
+  background: #162953;
+  color: white;
+  font-size: 15px;
+}
+
+.page .search::placeholder {
+  color: white;
+}
+
+.page .topButton {
+  height: 38px;
+  padding: 0 17px;
+  border: none;
+  border-radius: 5px;
+  background: #162953;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.page .userButton {
+  width: 140px;
+  height: 40px;
+  margin-left: auto;
+  border: none;
+  border-radius: 22px;
+  background: #203d73;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.page .body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page .sidebar {
+  width: 190px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 16px;
+  background: white;
+}
+
+.page .sideItem {
+  width: 100%;
+  padding: 11px 10px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: #172236;
+
+  text-align: left;
+
+  font-size: 17px;
+  line-height: 1.3;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.page .sideItem span {
+  display: block;
+}
+
+.page .sideItem:hover {
+  background: #203d73;
+  color: white;
+}
+
+.page .sideItem.active {
+  background: #203d73;
+  color: white;
+}
+
+.page .backButton {
+  width: 100%;
+  height: 34px;
+  margin-top: auto;
+  border: none;
+  border-radius: 6px;
+  background: #162953;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page .backButton:hover {
+  background: #315a91;
+}
+
+.page .content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 24px 14px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.page .top {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.page .exportButton {
+  width: 245px;
+  height: 38px;
+  border: none;
+  border-radius: 22px;
+  background: #203d73;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.page .inventory {
+  display: flex;
+  gap: 12px;
+}
+
+.page .inventoryButton {
+  height: 38px;
+  padding: 0 25px;
+  border: none;
+  border-radius: 22px;
+  background: #162953;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.page .pullOut {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.page .mainGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(820px, 1fr) 360px;
+  gap: 18px;
+  align-items: start;
+}
+
+.page .leftArea {
+  width: 100%;
+}
+
+.page .cards {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.page .card {
+  height: 265px;
+  padding: 15px 17px;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: #d9d9d9;
+}
+
+.page .card h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.page .edit {
+  width: auto;
+}
+
+.page .table {
+  width: 100%;
+  height: 480px;
+  overflow: hidden;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.page .tableTitle {
+  height: 80px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding: 16px 34px;
+  border-bottom: 2px solid #222;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.page .tableBody {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.page .tableRow {
+  flex: 1;
+  border-bottom: 2px solid #222;
+}
+
+.page .tableRow:last-child {
+  border-bottom: none;
+}
+
+.page .bottomButtons {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.page .bottomButtons button {
+  width: 145px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: white;
+  color: #222;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.page .bottomButtons button:hover {
+  background: #203d73;
+  color: white;
+}
+
+.page .rightArea {
+  width: 360px;
+}
+
+.page .rightControls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.page .row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.page .smallInput {
+  width: 175px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 5px;
+  outline: none;
+  background: white;
+  font-size: 13px;
+}
+
+.page .smallButton {
+  height: 32px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 5px;
+  background: white;
+  color: black;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page .actionButton {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 5px;
+  background: white;
+  color: black;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.page .smallButton:hover,
+.page .actionButton:hover {
+  background: #203d73;
+  color: white;
+}
+
+.page .stageCard {
+  width: 100%;
+  height: 680px;
+  padding: 16px 24px;
+  border: 1px solid #222;
+  border-radius: 4px;
+  background: #d9d9d9;
+}
+
+.page .stageCard h2 {
+  margin: 0 0 16px 0;
+  font-size: 23px;
+}
+
+.page .stageItem {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.page .stageItem label {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.page .stageItem input {
+  width: 170px;
+  height: 27px;
+  padding: 0 9px;
+  border: none;
+  outline: none;
+  background: #c9c9c9;
+  font-size: 12px;
+}
+
+.page .stageItem input::placeholder {
+  color: #333;
+}
+
+.page .topButton:hover,
+.page .userButton:hover,
+.page .exportButton:hover,
+.page .inventoryButton:hover {
+  background: #315a91;
+}
+
+@media (max-width: 1500px) {
+  .page .mainGrid {
+    grid-template-columns: minmax(700px, 1fr) 320px;
+  }
+
+  .page .rightArea {
+    width: 320px;
+  }
+
+  .page .card {
+    height: 245px;
+  }
+
+  .page .table {
+    height: 450px;
+  }
+
+  .page .stageCard {
+    height: 560px;
+  }
+}
