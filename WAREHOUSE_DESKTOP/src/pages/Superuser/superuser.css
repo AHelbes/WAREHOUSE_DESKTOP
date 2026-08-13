@@ -1,0 +1,536 @@
+/* =========================
+   PAGE
+========================= */
+
+.superPage {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  font-family: Arial, Helvetica, sans-serif;
+
+  background: white;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.superPage .header {
+  width: 100%;
+  height: 68px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 22px 0 10px;
+
+  background: white;
+}
+
+.superPage .logo {
+  width: 275px;
+  height: auto;
+
+  object-fit: contain;
+
+  margin-right: 30px;
+}
+
+.superPage .search {
+  width: 390px;
+  height: 40px;
+
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 22px;
+  outline: none;
+
+  background: #162953;
+  color: white;
+
+  font-size: 15px;
+}
+
+.superPage .search::placeholder {
+  color: white;
+}
+
+.superPage .topButton {
+  height: 38px;
+
+  padding: 0 17px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #162953;
+  color: white;
+
+  font-size: 15px;
+
+  cursor: pointer;
+}
+
+.superPage .userButton {
+  width: 140px;
+  height: 40px;
+
+  margin-left: auto;
+
+  border: none;
+  border-radius: 22px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 15px;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   BODY
+========================= */
+
+.superPage .body {
+  flex: 1;
+
+  display: flex;
+
+  min-height: 0;
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.superPage .sidebar {
+  width: 190px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 14px;
+
+  padding: 20px 16px;
+
+  background: white;
+}
+
+.superPage .sideItem {
+  width: 100%;
+
+  padding: 11px 10px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: #172236;
+
+  text-align: left;
+
+  font-size: 17px;
+  line-height: 1.3;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.superPage .sideItem span {
+  display: block;
+}
+
+.superPage .sideItem:hover {
+  background: #203d73;
+  color: white;
+}
+
+.superPage .sideItem.active {
+  background: #203d73;
+  color: white;
+}
+
+.superPage .backButton {
+  width: 100%;
+  height: 34px;
+
+  margin-top: auto;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #162953;
+  color: white;
+
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.superPage .content {
+  flex: 1;
+
+  min-width: 0;
+  min-height: 0;
+
+  padding: 18px 48px 30px;
+
+  overflow: hidden;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+/* =========================
+   TOP BUTTONS
+========================= */
+
+.superPage .top {
+  width: 100%;
+
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 22px;
+}
+
+.superPage .exportButton {
+  width: 285px;
+  height: 46px;
+
+  border: none;
+  border-radius: 25px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 18px;
+
+  cursor: pointer;
+}
+
+.superPage .pullButton {
+  width: 115px;
+  height: 46px;
+
+  border: none;
+  border-radius: 25px;
+
+  background: #162953;
+  color: white;
+
+  font-size: 17px;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   MAIN GRID
+========================= */
+
+.superPage .superGrid {
+  display: grid;
+
+  grid-template-columns: minmax(750px, 1fr) 345px;
+
+  gap: 25px;
+}
+
+
+/* =========================
+   LEFT SIDE
+========================= */
+
+.superPage .leftArea {
+  display: flex;
+  flex-direction: column;
+
+  gap: 28px;
+}
+
+
+/* =========================
+   USERS CARD
+========================= */
+
+.superPage .usersCard {
+  width: 100%;
+  height: 285px;
+
+  padding: 15px 36px;
+
+  border: 1px solid #222;
+  border-radius: 4px;
+
+  background: #d9d9d9;
+}
+
+.superPage .usersHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 25px;
+
+  margin-bottom: 20px;
+}
+
+.superPage .usersHeader h2 {
+  margin: 0;
+
+  font-size: 26px;
+}
+
+.superPage .userSearch {
+  width: 430px;
+  height: 34px;
+
+  padding: 0 15px;
+
+  border: none;
+  outline: none;
+
+  background: #c9c9c9;
+
+  font-size: 17px;
+}
+
+
+/* =========================
+   USER COLUMNS
+========================= */
+
+.superPage .userColumns {
+  display: grid;
+
+  grid-template-columns: 1.2fr 1.3fr 1fr;
+
+  margin-bottom: 18px;
+
+  font-size: 17px;
+  font-weight: 500;
+}
+
+
+/* =========================
+   USER ROWS
+========================= */
+
+.superPage .userRow {
+  display: grid;
+
+  grid-template-columns: 1.2fr 1.3fr 1fr;
+
+  align-items: start;
+
+  margin-bottom: 14px;
+
+  font-size: 15px;
+}
+
+.superPage .userRow div {
+  display: flex;
+  flex-direction: column;
+}
+
+.superPage .userRow strong {
+  font-size: 17px;
+}
+
+.superPage .userRow small {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+
+/* =========================
+   USER INFORMATION
+========================= */
+
+.superPage .userInfoCard {
+  height: 285px;
+
+  padding: 16px 35px;
+
+  border: 1px solid #222;
+  border-radius: 4px;
+
+  background: #d9d9d9;
+}
+
+.superPage .userInfoCard h2 {
+  margin: 0 0 20px;
+
+  font-size: 27px;
+}
+
+.superPage .infoBlock h3 {
+  margin: 0 0 12px;
+
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.superPage .infoBlock p {
+  margin: 0 0 9px;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   USER ACTIONS
+========================= */
+
+.superPage .userActions {
+  display: flex;
+
+  gap: 14px;
+
+  margin-top: 48px;
+
+  justify-content: center;
+}
+
+.superPage .userActions button {
+  height: 35px;
+
+  padding: 0 15px;
+
+  border: none;
+
+  background: #162953;
+  color: white;
+
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   MONTHLY WAREHOUSE
+========================= */
+
+.superPage .monthlyCard {
+  width: 100%;
+  height: 285px;
+
+  padding: 14px 35px;
+
+  border: 1px solid #222;
+  border-radius: 4px;
+
+  background: #d9d9d9;
+}
+
+.superPage .monthlyHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 20px;
+}
+
+.superPage .monthlyHeader h2 {
+  margin: 0;
+
+  margin-right: auto;
+
+  font-size: 27px;
+}
+
+.superPage .monthlyHeader button {
+  width: 150px;
+  height: 34px;
+
+  border: none;
+
+  background: #c9c9c9;
+  color: #222;
+
+  font-size: 17px;
+
+  text-align: left;
+
+  padding-left: 16px;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   HOVERS
+========================= */
+
+.superPage .topButton:hover,
+.superPage .userButton:hover,
+.superPage .exportButton:hover,
+.superPage .pullButton:hover,
+.superPage .backButton:hover,
+.superPage .userActions button:hover {
+  background: #315a91;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1400px) {
+
+  .superPage .logo {
+    width: 240px;
+
+    margin-right: 15px;
+  }
+
+  .superPage .search {
+    width: 320px;
+  }
+
+  .superPage .content {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+
+  .superPage .superGrid {
+    grid-template-columns: minmax(650px, 1fr) 310px;
+  }
+
+  .superPage .usersCard,
+  .superPage .userInfoCard {
+    height: 260px;
+  }
+
+  .superPage .monthlyCard {
+    height: 260px;
+  }
+}
