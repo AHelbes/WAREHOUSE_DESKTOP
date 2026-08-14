@@ -46,10 +46,10 @@ function Warehouse1({
 
           <button
             className="sideItem"
-            onClick={onSuperuser}
+            onClick={onWarehouse2}
           >
-            <span>Superuser</span>
-            <span>Controls</span>
+            <span>Warehouse 2:</span>
+            <span>Computer Equpments</span>
           </button>
 
           <button className="sideItem">

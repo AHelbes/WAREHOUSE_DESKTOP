@@ -1,26 +1,45 @@
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import "./login.css";
 import logo from "../../assets/logo.png";
 import background from "../../assets/background.png";
+import { supabase } from "../../supabase/supabaseClient";
 
 type LoginProps = {
   onLogin: () => void;
 };
 
 function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
 
-    if (username === "user1" && password === "testing") {
-      setError("");
-      onLogin();
-    } else {
-      setError("Invalid username or password");
+    if (!email || !password) {
+      setError("Please enter your email and password");
+      return;
     }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      console.error("Login error:", error.message);
+      setError("Invalid username or password");
+      setPassword("");
+      return;
+    }
+
+    onLogin();
   };
 
   return (
@@ -37,15 +56,17 @@ function Login({ onLogin }: LoginProps) {
 
         <form className="loginCard" onSubmit={handleLogin}>
           <input
-            type="text"
+            type="email"
+            name="email"
             placeholder="Username"
             className="loginInput"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
             type="password"
+            name="password"
             placeholder="Password"
             className="loginInput"
             value={password}
@@ -54,8 +75,8 @@ function Login({ onLogin }: LoginProps) {
 
           {error && <p className="loginError">{error}</p>}
 
-          <button type="submit" className="loginButton">
-            Login
+          <button type="submit" className="loginButton" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </section>
@@ -64,3 +85,5 @@ function Login({ onLogin }: LoginProps) {
 }
 
 export default Login;
+
+
