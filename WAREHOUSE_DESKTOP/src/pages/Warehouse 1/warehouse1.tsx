@@ -1,6 +1,8 @@
 import "./warehouse1.css";
 import logo from "../../assets/logo.png";
 import background from "../../assets/bgWarehouse.png";
+import { useEffect, useState } from "react";
+import { supabase } from "../../supabase/supabaseClient";
 
 type Warehouse1Props = {
   onBack: () => void;
@@ -8,11 +10,44 @@ type Warehouse1Props = {
   onSuperuser: () => void;
 };
 
+/*This is a label for the data that is going to come in from supabase. These are the columns that will be presented.*/
+type LaptopData = {
+  id: string;
+  hostname: string | null;
+  equipment_type: string | null;
+  serial_number: string | null;
+  shelf: string | null;
+  status: string | null;
+};
+
 function Warehouse1({
   onBack,
   onWarehouse2,
   onSuperuser
 }: Warehouse1Props) {
+  /*Memory boxes. laptops is for the real rows, loading always starts true and lets user know the program is still loading, error starts null*/
+  const [laptops, setLaptops] = useState<LaptopData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLaptops() {
+      const { data, error } = await supabase
+        .from("warehouse_laptops")
+        .select("*")
+        .order("hostname", { ascending: true });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setLaptops(data ?? []);
+      }
+      setLoading(false);
+    }
+
+    fetchLaptops();
+  }, []);
+
   return (
     <main className="page">
       <header className="header">
@@ -49,10 +84,13 @@ function Warehouse1({
             onClick={onWarehouse2}
           >
             <span>Warehouse 2:</span>
-            <span>Computer Equpments</span>
+            <span>Computer Equipment</span>
           </button>
 
-          <button className="sideItem">
+          <button 
+            className="sideItem"
+            onClick={onSuperuser}
+          >
             Superuser
             <span>Controls</span>
           </button>
@@ -99,22 +137,23 @@ function Warehouse1({
                   <h2>Edit Data</h2>
                 </div>
               </div>
-
               <div className="table">
                 <div className="tableTitle">
                   Warehouse
                 </div>
                 <div className="tableBody">
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
+                  {loading && <div className="tableRow">Loading...</div>}
+                  {error && <div className="tableRow">Error: {error}</div>}
+
+                  {!loading && !error && laptops.map((laptop) => (
+                    <div className="tableRow" key={laptop.id}>
+                      <span>{laptop.hostname}</span>
+                      <span>{laptop.equipment_type}</span>
+                      <span>{laptop.serial_number}</span>
+                      <span>{laptop.shelf}</span>
+                      <span>{laptop.status}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 

@@ -1,6 +1,8 @@
 import "./warehouse2.css";
 import logo from "../../assets/logo.png";
 import background from "../../assets/bgWarehouse.png";
+import { useEffect, useState } from "react";
+import { supabase } from "../../supabase/supabaseClient";
 
 type Warehouse2Props = {
   onBack: () => void;
@@ -8,11 +10,44 @@ type Warehouse2Props = {
   onSuperuser: () => void;
 };
 
+/*This is a label for the data that is going to come in from supabase. These are the columns that will be presented.*/
+type CeData = {
+  id: string;
+  hostname: string | null;
+  equipment_type: string | null;
+  serial_number: string | null;
+  shelf: string | null;
+  status: string | null;
+};
+
 function Warehouse2({
   onBack,
   onWarehouse1,
   onSuperuser,
 }: Warehouse2Props) {
+  /*Memory boxes. Ce is for the real rows, loading always starts true and lets user know the program is still loading, error starts null*/
+    const [ce, setCe] = useState<CeData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+  
+    useEffect(() => {
+      async function fetchCe() {
+        const { data, error } = await supabase
+          .from("warehouse_ce")
+          .select("*")
+          .order("hostname", { ascending: true });
+  
+        if (error) {
+          setError(error.message);
+        } else {
+          setCe(data ?? []);
+        }
+        setLoading(false);
+      }
+  
+      fetchCe();
+    }, []);
+
   return (
     <main className="page">
       <header className="header">
@@ -105,16 +140,18 @@ function Warehouse2({
                   Warehouse
                 </div>
                 <div className="tableBody">
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
-                  <div className="tableRow"></div>
+                  {loading && <div className="tableRow">Loading...</div>}
+                  {error && <div className="tableRow">Error: {error}</div>}
+
+                  {!loading && !error && ce.map((ce) => (
+                    <div className="tableRow" key={ce.id}>
+                      <span>{ce.hostname}</span>
+                      <span>{ce.equipment_type}</span>
+                      <span>{ce.serial_number}</span>
+                      <span>{ce.shelf}</span>
+                      <span>{ce.status}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
