@@ -222,6 +222,7 @@
 
 .page .edit {
   width: auto;
+  min-height: 350px;
 }
 
 .page .table {
