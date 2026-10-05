@@ -10,78 +10,211 @@ import { supabase } from "./supabase/supabaseClient";
 
 import "./App.css";
 
+type Page =
+  | "login"
+  | "warehouse1"
+  | "warehouse2"
+  | "superuser"
+  | "resetPassword";
+
+type UserRole = "regular" | "superuser" | null;
+
 function App() {
-  const [currentPage, setCurrentPage] = useState< 
-  "login" | "warehouse1" | "warehouse2" | "superuser" | "resetPassword"
-  >("login");
+  const [currentPage, setCurrentPage] = useState<Page>("login");
+
+  // Stores the currently logged-in user's role
+  const [userRole, setUserRole] = useState<UserRole>(null);
+
+  /* =========================================================
+     GET LOGGED-IN USER ROLE
+     ========================================================= */
+
+  async function fetchUserRole() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Could not get logged-in user.");
+      setUserRole(null);
+      return null;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      console.error(
+        "Could not get user role:",
+        profileError.message
+      );
+
+      setUserRole(null);
+      return null;
+    }
+
+    const role = profile.role as UserRole;
+
+    setUserRole(role);
+
+    console.log("Logged-in user role:", role);
+
+    return role;
+  }
+
+  /* =========================================================
+     LOGIN
+     ========================================================= */
+
+  async function handleLogin() {
+    const role = await fetchUserRole();
+
+    // Both regular users and superusers start in Warehouse 1
+    if (role === "regular" || role === "superuser") {
+      setCurrentPage("warehouse1");
+      return;
+    }
+
+    alert("Unable to determine your account role.");
+    setCurrentPage("login");
+  }
+
+  /* =========================================================
+     OPEN SUPERUSER PAGE
+     ========================================================= */
+
+  function handleOpenSuperuser() {
+    if (userRole !== "superuser") {
+      alert("You do not have permission to access Superuser Controls.");
+      return;
+    }
+
+    setCurrentPage("superuser");
+  }
+
+  /* =========================================================
+     LOGOUT / BACK TO LOGIN
+     ========================================================= */
+
+  async function handleBackToLogin() {
+    await supabase.auth.signOut();
+
+    setUserRole(null);
+    setCurrentPage("login");
+  }
+
+  /* =========================================================
+     PASSWORD RESET DEEP LINK
+     ========================================================= */
 
   useEffect(() => {
-    // This runs once when the app starts. It sets up a listener that
-    // waits for the Rust side to say "hey, a warehouse:// link was clicked."
-    const unlistenPromise = listen<string>("deep-link-received", async (event) => {
-      const url = new URL(event.payload);
+    const unlistenPromise = listen<string>(
+      "deep-link-received",
+      async (event) => {
+        const url = new URL(event.payload);
 
-      // The tokens live after the "#" in the link, e.g.
-      // warehouse://reset-password#access_token=xxx&refresh_token=yyy
-      const hashParams = new URLSearchParams(url.hash.substring(1));
-      const access_token = hashParams.get("access_token");
-      const refresh_token = hashParams.get("refresh_token");
+        const hashParams = new URLSearchParams(
+          url.hash.substring(1)
+        );
 
-      if (access_token && refresh_token) {
-        const { error } = await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
+        const access_token =
+          hashParams.get("access_token");
 
-        if (!error) {
-          setCurrentPage("resetPassword");
-        } else {
-          console.error("Failed to set session from deep link:", error.message);
+        const refresh_token =
+          hashParams.get("refresh_token");
+
+        if (access_token && refresh_token) {
+          const { error } =
+            await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+
+          if (!error) {
+            setCurrentPage("resetPassword");
+          } else {
+            console.error(
+              "Failed to set session from deep link:",
+              error.message
+            );
+          }
         }
       }
-    });
+    );
 
-    // Cleanup: stop listening if App ever unmounts
     return () => {
-      unlistenPromise.then((unlisten) => unlisten());
+      unlistenPromise.then((unlisten) =>
+        unlisten()
+      );
     };
   }, []);
 
+  /* =========================================================
+     PAGE DISPLAY
+     ========================================================= */
+
   return (
     <>
+      {/* ================= LOGIN ================= */}
+
       {currentPage === "login" && (
         <Login
-          onLogin={() => setCurrentPage("warehouse1")}
+          onLogin={handleLogin}
         />
       )}
+
+      {/* ================= WAREHOUSE 1 ================= */}
 
       {currentPage === "warehouse1" && (
         <Warehouse1
-          onBack={() => setCurrentPage("login")}
-          onWarehouse2={() => setCurrentPage("warehouse2")}
-          onSuperuser={() => setCurrentPage("superuser")}
+          onBack={handleBackToLogin}
+          onWarehouse2={() =>
+            setCurrentPage("warehouse2")
+          }
+          onSuperuser={handleOpenSuperuser}
+          isSuperuser={userRole === "superuser"}
         />
       )}
+
+      {/* ================= WAREHOUSE 2 ================= */}
 
       {currentPage === "warehouse2" && (
         <Warehouse2
-          onBack={() => setCurrentPage("login")}
-          onWarehouse1={() => setCurrentPage("warehouse1")}
-          onSuperuser={() => setCurrentPage("superuser")}
+          onBack={handleBackToLogin}
+          onWarehouse1={() =>
+            setCurrentPage("warehouse1")
+          }
+          onSuperuser={handleOpenSuperuser}
+          isSuperuser={userRole === "superuser"}
         />
       )}
 
-      {currentPage === "superuser" && (
-        <Superuser
-          onBack={() => setCurrentPage("login")}
-          onWarehouse1={() => setCurrentPage("warehouse1")}
-          onWarehouse2={() => setCurrentPage("warehouse2")}
-        />
-      )}
+      {/* ================= SUPERUSER ================= */}
+
+      {currentPage === "superuser" &&
+        userRole === "superuser" && (
+          <Superuser
+            onBack={handleBackToLogin}
+            onWarehouse1={() =>
+              setCurrentPage("warehouse1")
+            }
+            onWarehouse2={() =>
+              setCurrentPage("warehouse2")
+            }
+          />
+        )}
+
+      {/* ================= RESET PASSWORD ================= */}
 
       {currentPage === "resetPassword" && (
         <ResetPassword
-          onDone={() => setCurrentPage("login")}
+          onDone={() =>
+            setCurrentPage("login")
+          }
         />
       )}
     </>

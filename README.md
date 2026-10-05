@@ -49,6 +49,12 @@
   npm install
 ```
 
+**What dependencies do you need for the QR Code Generator?**
+```
+npm install qrcode jspdf jspdf-autotable
+npm install -D @types/qrcode
+```
+
 **What do you need to know about Tauri?** A Tauri template was used to build the app and typescript was used to build the pages. Future developers should directly edit the `src` file (Typescript) to make changes to the pages while keeping changes to the Tauri template at a minimum. For reference, this command was used to create the template **thus not required to run this command.**
 ```
   npm create tauri-app@latest

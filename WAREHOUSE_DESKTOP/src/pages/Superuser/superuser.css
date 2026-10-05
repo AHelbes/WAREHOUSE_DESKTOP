@@ -345,15 +345,15 @@
 ========================= */
 
 .superPage .userRow {
-  display: grid;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 5px;
 
-  grid-template-columns: 1.2fr 1.3fr 1fr;
+  transition: background 0.2s ease;
+}
 
-  align-items: start;
-
-  margin-bottom: 14px;
-
-  font-size: 15px;
+.superPage .userRow:hover {
+  background: #c4c4c4;
 }
 
 .superPage .userRow div {

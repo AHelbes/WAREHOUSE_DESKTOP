@@ -7,16 +7,22 @@ import background from "../../assets/bgWarehouse.png";
 
 import Papa from "papaparse";
 
+import QRCode from "qrcode";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 type Warehouse1Props = {
   onBack: () => void;
   onWarehouse2: () => void;
   onSuperuser: () => void;
+  isSuperuser: boolean;
 };
 
 function Warehouse1({
   onBack,
   onWarehouse2,
-  onSuperuser
+  onSuperuser,
+  isSuperuser
 }: Warehouse1Props) {
   /*Memory boxes for importing CSV files*/
   const [importing, setImporting] = useState(false);
@@ -106,9 +112,14 @@ function Warehouse1({
   const { data, error } = await supabase
     .from("staging_import")
     .select("*")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
-  if (!error) setStagingRows(data ?? []);
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  setStagingRows(data ?? []);
   }
   
   useEffect(() => {
@@ -208,6 +219,41 @@ function Warehouse1({
       fetchStaging();
     }
   }
+
+  /*Clear stage*/
+  async function handleClearStage() {
+  if (stagingRows.length === 0) {
+    alert("There are no staged items to clear.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Clear all ${stagingRows.length} staged items?`
+  );
+
+  if (!confirmed) return;
+
+  const stagedIds = stagingRows.map((row) => row.id);
+
+  const { error } = await supabase
+    .from("staging_import")
+    .delete()
+    .in("id", stagedIds);
+
+  if (error) {
+    alert(`Could not clear stage: ${error.message}`);
+    return;
+  }
+
+  setStagingRows([]);
+  setSelectedStagingId(null);
+  setStagingEditValues({});
+  setUnitSearchTerm("");
+  setUnitSearchResults([]);
+  setStagingSearchTerm("");
+
+  alert("Stage cleared.");
+}
 
   /*Commits everything currently in staging into the real tables (via the
   commit_staged_imports SQL function), then empties staging.*/
@@ -354,6 +400,189 @@ function Warehouse1({
     setLogFormValues({});
   }
 
+  /*Function for the QR Code Generator function*/
+  async function handleGenerateQRCode(row: Record<string, any>) {
+  if (!row.id) {
+    alert("This unit does not have a permanent ID yet.");
+    return;
+  }
+
+  try {
+    const qrValue = `warehouse_1:${row.id}`;
+
+    const qrDataUrl = await QRCode.toDataURL(qrValue, {
+      width: 400,
+      margin: 2,
+    });
+
+    const link = document.createElement("a");
+
+    link.href = qrDataUrl;
+
+    const safeHostname = String(
+      row.hostname || "warehouse-unit"
+    ).replace(/[^a-zA-Z0-9-_]/g, "_");
+
+    link.download = `${safeHostname}_QR.png`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("QR generation failed:", error);
+    alert("Could not generate QR code.");
+  }
+}
+
+  /*Generate QR Codes for Units in Staging*/
+  function handleExportStagedCSV() {
+    if (stagingRows.length === 0) {
+      alert("There are no staged units to export.");
+      return;
+    }
+
+    const cleanedRows = stagingRows.map((row) => {
+      const {
+        id,
+        created_at,
+        ...exportableFields
+      } = row;
+    
+      return exportableFields;
+    });
+
+    const csv = Papa.unparse(cleanedRows);
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+  
+    const url = URL.createObjectURL(blob);
+  
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `warehouse1_staged_${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
+
+  /*Function for the export PDF/CSV function*/
+  async function handleExportStagedPDF() {
+    if (stagingRows.length === 0) {
+      alert("There are no staged units to export.");
+      return;
+    }
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  pdf.setFontSize(18);
+  pdf.text("Warehouse 1 - Staged Units", 14, 15);
+
+  pdf.setFontSize(10);
+  pdf.text(
+    `Generated: ${new Date().toLocaleString()}`,
+    14,
+    22
+  );
+
+  const ignoredColumns = [
+    "id",
+    "created_at",
+  ];
+
+  const exportColumns = Object.keys(stagingRows[0]).filter(
+    (column) => !ignoredColumns.includes(column)
+  );
+
+  autoTable(pdf, {
+    startY: 28,
+
+    head: [exportColumns],
+
+    body: stagingRows.map((row) =>
+      exportColumns.map((column) =>
+        String(row[column] ?? "")
+      )
+    ),
+
+    styles: {
+      fontSize: 6,
+    },
+
+    headStyles: {
+      fontSize: 6,
+    },
+  });
+
+  pdf.save(
+    `warehouse1_staged_${new Date()
+      .toISOString()
+      .slice(0, 10)}.pdf`
+  );
+  }
+
+  /*Function for the pull out function*/
+  async function handlePullOut() {
+  if (stagingRows.length === 0) {
+    alert("There are no staged units to pull out.");
+    return;
+  }
+
+  // Only existing warehouse units can be pulled out.
+  const existingUnits = stagingRows.filter(
+    (row) => row.source_unit_id
+  );
+
+  if (existingUnits.length === 0) {
+    alert(
+      "There are no existing warehouse units staged for pull out."
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Pull out ${existingUnits.length} staged unit(s)?`
+  );
+
+  if (!confirmed) return;
+
+  const stagedIds = existingUnits.map(
+    (row) => row.id
+  );
+
+  const { error } = await supabase
+    .from("staging_import")
+    .update({
+      status: "deployed",
+    })
+    .in("id", stagedIds);
+
+  if (error) {
+    alert(
+      `Pull out failed: ${error.message}`
+    );
+    return;
+  }
+
+  alert(
+    `${existingUnits.length} unit(s) marked as deployed. Click Commit All to finalize the pull out.`
+  );
+
+  fetchStaging();
+}
 
   /*Function for the shelf control management*/
     /*Function to set a shelf's status directly from the search input + FULL/AVAILABLE buttons.*/
@@ -460,17 +689,6 @@ function Warehouse1({
           onChange={(e) => setSearchTerm(e.target.value)}
         />
 
-        <button className="topButton">
-          Update
-        </button>
-
-        <button className="topButton">
-          Stage
-        </button>
-
-        <button className="userButton">
-          User
-        </button>
       </header>
 
       <div className="body">
@@ -488,13 +706,15 @@ function Warehouse1({
             <span>Computer Equipment</span>
           </button>
 
-          <button 
+          {isSuperuser && (
+            <button 
             className="sideItem"
             onClick={onSuperuser}
-          >
-            Superuser
-            <span>Controls</span>
-          </button>
+            >
+              Superuser
+              <span>Controls</span>
+            </button>
+          )}
 
           <button
             className="backButton"
@@ -512,8 +732,20 @@ function Warehouse1({
           }}
         >
           <div className="top">
-            <button className="exportButton">
-              Generate & Export
+            <button 
+              className="exportButton"
+              onClick={handleExportStagedPDF}
+              disabled={stagingRows.length === 0}
+            >
+              Export PDF File
+            </button>
+
+            <button
+              className="exportButton"
+              onClick={handleExportStagedCSV}
+              disabled={stagingRows.length === 0}
+            >
+              Export CSV
             </button>
 
             <div className="inventory">
@@ -524,7 +756,11 @@ function Warehouse1({
                 Log Inventory
               </button>
 
-              <button className="inventoryButton pullOut">
+              <button 
+                className="inventoryButton pullOut"
+                onClick={handlePullOut}
+                disabled={stagingRows.length === 0}
+              >
                 Pull Out
               </button>
             </div>
@@ -624,6 +860,8 @@ function Warehouse1({
                         {columns.map((col) => (
                           <span key={col}>{col}</span>
                         ))}
+
+                        <span>QR</span>
                       </div>
 
                       {filteredRows.map((row) => (
@@ -631,6 +869,14 @@ function Warehouse1({
                           {columns.map((col) => (
                             <span key={col}>{String(row[col] ?? "")}</span>
                           ))}
+
+                          <span>
+                            <button
+                              onClick={() => handleGenerateQRCode(row)}
+                            >
+                              Generate QR
+                            </button>
+                          </span>
                         </div>
                       ))}
                     </>
@@ -639,10 +885,6 @@ function Warehouse1({
               </div>
 
               <div className="bottomButtons">
-                <button>
-                  Edit Data
-                </button>
-
                 {/*IMPORT CSV FILE BUTTON*/}
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -659,7 +901,10 @@ function Warehouse1({
                 style={{ display: "none" }}
                 />
 
-                <button>
+                <button
+                  onClick={handleClearStage}
+                  disabled={stagingRows.length === 0}
+                >
                   Clear Stage
                 </button>
               </div>

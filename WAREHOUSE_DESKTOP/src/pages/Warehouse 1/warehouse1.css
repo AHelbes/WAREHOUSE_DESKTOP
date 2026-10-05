@@ -1,89 +1,167 @@
+/* =========================================================
+   WAREHOUSE 1
+   Clean responsive stylesheet
+   ========================================================= */
+
+
+/* =========================================================
+   1. GLOBAL
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   2. PAGE SHELL
+   Header stays at top.
+   Body fills remaining space.
+   ========================================================= */
+
 .page {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
+
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  font-family: Arial, Helvetica, sans-serif;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
   background: white;
+  color: #172236;
+
+  font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* =========================================================
+   3. HEADER
+   ========================================================= */
 
 .page .header {
   width: 100%;
-  height: 68px;
+  min-height: 68px;
+
   flex-shrink: 0;
+
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 22px 0 10px;
+  gap: clamp(12px, 2vw, 28px);
+
+  padding: 8px clamp(12px, 2vw, 24px);
+
   background: white;
 }
 
 .page .logo {
-  width: 275px;
+  width: clamp(190px, 18vw, 275px);
+  max-width: 35%;
+
   height: auto;
+
+  flex-shrink: 0;
+
   object-fit: contain;
-  margin-right: 30px;
 }
 
 .page .search {
-  width: 390px;
+  width: clamp(220px, 32vw, 420px);
   height: 40px;
-  padding: 0 22px;
+
+  padding: 0 20px;
+
   border: none;
   border-radius: 22px;
   outline: none;
+
   background: #162953;
   color: white;
-  font-size: 15px;
+
+  font-size: 14px;
 }
 
 .page .search::placeholder {
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.page .topButton {
-  height: 38px;
-  padding: 0 17px;
-  border: none;
-  border-radius: 5px;
-  background: #162953;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
 
-.page .userButton {
-  width: 140px;
-  height: 40px;
-  margin-left: auto;
-  border: none;
-  border-radius: 22px;
-  background: #203d73;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
+/* =========================================================
+   4. BODY
+   ========================================================= */
 
 .page .body {
+  width: 100%;
+
   flex: 1;
+
   display: flex;
-  min-height: 0;
-  overflow: hidden;
+  align-items: stretch;
+
+  overflow: visible;
 }
 
+
+/* =========================================================
+   5. SIDEBAR
+   ========================================================= */
+
 .page .sidebar {
-  width: 190px;
+  width: clamp(155px, 13vw, 190px);
+
   flex-shrink: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 16px;
+
+  gap: 12px;
+
+  padding: 20px 14px;
+
+  overflow-y: auto;
+
   background: white;
 }
 
 .page .sideItem {
   width: 100%;
+
   padding: 11px 10px;
 
   border: none;
@@ -94,25 +172,15 @@
 
   text-align: left;
 
-  font-size: 17px;
+  font-size: clamp(13px, 1.15vw, 17px);
   line-height: 1.3;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
 }
 
 .page .sideItem span {
   display: block;
 }
 
-.page .sideItem:hover {
-  background: #203d73;
-  color: white;
-}
-
+.page .sideItem:hover,
 .page .sideItem.active {
   background: #203d73;
   color: white;
@@ -120,65 +188,104 @@
 
 .page .backButton {
   width: 100%;
-  height: 34px;
+  min-height: 36px;
+
   margin-top: auto;
+
+  flex-shrink: 0;
+
   border: none;
   border-radius: 6px;
+
   background: #162953;
   color: white;
+
   font-size: 12px;
-  cursor: pointer;
 }
 
 .page .backButton:hover {
   background: #315a91;
 }
 
+
+/* =========================================================
+   6. MAIN SCROLLABLE CONTENT
+
+   IMPORTANT:
+   This is the ONE main page scrollbar.
+   ========================================================= */
+
 .page .content {
   flex: 1;
+
   min-width: 0;
-  min-height: 0;
-  padding: 12px 24px 14px;
-  overflow: hidden;
+
+  padding:
+    clamp(12px, 1.5vw, 20px)
+    clamp(14px, 2vw, 28px)
+    60px;
+
+  overflow: visible;
+
   background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-position: center top;
+  background-repeat: repeat-y;
 }
+
+
+/* =========================================================
+   7. TOP ACTION BAR
+   ========================================================= */
 
 .page .top {
   width: 100%;
-  height: 44px;
+
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 10px;
+
+  margin-bottom: 14px;
+
+  flex-wrap: wrap;
 }
 
 .page .exportButton {
-  width: 245px;
+  min-width: 150px;
   height: 38px;
+
+  padding: 0 22px;
+
   border: none;
   border-radius: 22px;
+
   background: #203d73;
   color: white;
-  font-size: 16px;
-  cursor: pointer;
+
+  font-size: 14px;
 }
 
 .page .inventory {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+
+  margin-left: auto;
+
+  flex-wrap: wrap;
 }
 
 .page .inventoryButton {
   height: 38px;
-  padding: 0 25px;
+
+  padding: 0 22px;
+
   border: none;
   border-radius: 22px;
+
   background: #162953;
   color: white;
-  font-size: 15px;
-  cursor: pointer;
+
+  font-size: 14px;
 }
 
 .page .pullOut {
@@ -186,160 +293,549 @@
   padding-right: 18px;
 }
 
+.page .exportButton:hover:not(:disabled),
+.page .inventoryButton:hover:not(:disabled) {
+  background: #315a91;
+}
+
+
+/* =========================================================
+   8. MAIN GRID
+
+   Left = warehouse controls/table
+   Right = shelf/staging
+
+   Neither side controls the other's height.
+   ========================================================= */
+
 .page .mainGrid {
   width: 100%;
+
   display: grid;
-  grid-template-columns: minmax(820px, 1fr) 360px;
-  gap: 18px;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(290px, 360px);
+
+  gap: clamp(14px, 1.5vw, 22px);
+
   align-items: start;
 }
 
-.page .leftArea {
+.page .leftArea,
+.page .rightArea {
   width: 100%;
+  min-width: 0;
 }
+
+
+/* =========================================================
+   9. TOP LEFT CARDS
+   ========================================================= */
 
 .page .cards {
   width: 100%;
+
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
-  gap: 16px;
-  margin-bottom: 12px;
+
+  grid-template-columns:
+    minmax(220px, 0.85fr)
+    minmax(300px, 1.15fr);
+
+  gap: 14px;
+
+  align-items: start;
+
+  margin-bottom: 14px;
 }
 
 .page .card {
-  height: 265px;
-  padding: 15px 17px;
+  width: 100%;
+  min-width: 0;
+
+  min-height: 230px;
+
+  padding: 16px;
+
   border: 1px solid #222;
-  border-radius: 4px;
+  border-radius: 6px;
+
   background: #d9d9d9;
+
+  overflow: hidden;
 }
 
 .page .card h2 {
-  margin: 0;
+  margin: 0 0 14px;
+
   font-size: 20px;
   font-weight: 700;
 }
 
-.page .edit {
-  width: auto;
-  min-height: 350px;
+
+/* ---------- ADD COLUMN ---------- */
+
+.page .card > input,
+.page .card > select {
+  width: 100%;
+  height: 36px;
+
+  margin-bottom: 10px;
+
+  padding: 0 11px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 5px;
+  outline: none;
+
+  background: white;
+  color: #172236;
+
+  font-size: 13px;
 }
 
-.page .table {
-  width: 100%;
-  height: 480px;
-  overflow: hidden;
-  border: 1px solid #222;
-  border-radius: 4px;
-  background: white;
+.page .card > input:focus,
+.page .card > select:focus {
+  border-color: #203d73;
+}
+
+.page .card > button {
+  min-height: 34px;
+
+  padding: 0 18px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 13px;
+}
+
+.page .card > button:hover:not(:disabled) {
+  background: #315a91;
+}
+
+
+/* =========================================================
+   10. EDIT DATA CARD
+   ========================================================= */
+
+.page .edit {
+  min-height: 230px;
+  max-height: 360px;
+
   display: flex;
   flex-direction: column;
 }
 
-.page .tableTitle {
-  height: 80px;
+.page .edit p {
+  margin: 0 0 6px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.page .edit > input {
+  width: 100%;
+  min-height: 34px;
+
   flex-shrink: 0;
+
+  padding: 0 11px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 5px;
+  outline: none;
+
+  background: white;
+
+  font-size: 13px;
+}
+
+.page .edit > input:focus {
+  border-color: #203d73;
+}
+
+
+/* =========================================================
+   11. SEARCH RESULTS
+   Used by Edit Data and Stage Sets
+   ========================================================= */
+
+.page .searchResults {
+  width: 100%;
+  max-height: 120px;
+
+  margin-top: 6px;
+
   display: flex;
-  align-items: flex-start;
-  padding: 16px 34px;
+  flex-direction: column;
+  gap: 4px;
+
+  overflow-y: auto;
+
+  flex-shrink: 0;
+}
+
+.page .searchResults:empty {
+  display: none;
+}
+
+.page .searchResults button {
+  width: 100%;
+  min-height: 32px;
+
+  flex-shrink: 0;
+
+  padding: 6px 10px;
+
+  border: 1px solid #bcbcbc;
+  border-radius: 4px;
+
+  background: white;
+  color: #172236;
+
+  text-align: left;
+  font-size: 12px;
+}
+
+.page .searchResults button:hover {
+  background: #203d73;
+  color: white;
+
+  border-color: #203d73;
+}
+
+
+/* =========================================================
+   12. EDIT FORMS
+   Used by normal edit + staged edit
+   ========================================================= */
+
+.page .editForm {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding-right: 4px;
+}
+
+.page .card .editForm {
+  flex: 1;
+
+  margin-top: 8px;
+}
+
+.page .editField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  flex-shrink: 0;
+}
+
+.page .editField label {
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #172236;
+
+  text-transform: capitalize;
+}
+
+.page .editField input {
+  width: 100%;
+  height: 31px;
+
+  flex-shrink: 0;
+
+  padding: 0 9px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 4px;
+  outline: none;
+
+  background: white;
+  color: #172236;
+
+  font-size: 12px;
+}
+
+.page .editField input:focus {
+  border-color: #203d73;
+}
+
+.page .editFormButtons {
+  display: flex;
+  gap: 7px;
+
+  flex-wrap: wrap;
+  flex-shrink: 0;
+
+  padding-top: 4px;
+}
+
+.page .editFormButtons button {
+  min-height: 32px;
+
+  padding: 0 13px;
+
+  border: none;
+  border-radius: 4px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 12px;
+}
+
+.page .editFormButtons button:hover {
+  background: #315a91;
+}
+
+
+/* =========================================================
+   13. WAREHOUSE TABLE
+
+   The table has its OWN scrolling because its dataset can
+   become huge. It does not grow forever with the page.
+   ========================================================= */
+
+.page .table {
+  width: 100%;
+
+  height: clamp(340px, 48vh, 520px);
+
+  min-width: 0;
+  min-height: 340px;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border: 1px solid #222;
+  border-radius: 6px;
+
+  background: white;
+}
+
+.page .tableTitle {
+  min-height: 62px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+
+  padding: 12px clamp(18px, 2vw, 30px);
+
   border-bottom: 2px solid #222;
-  font-size: 28px;
+
+  font-size: clamp(21px, 2vw, 28px);
   font-weight: 700;
 }
 
 .page .tableBody {
   width: 100%;
+
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  min-height: 0;
+
+  display: block;
+
+  overflow: auto;
 }
 
 .page .tableRow {
-  flex: 1;
-  border-bottom: 2px solid #222;
+  width: max-content;
+  min-width: 100%;
+
+  min-height: 43px;
+
+  display: flex;
+  align-items: stretch;
+
+  border-bottom: 1px solid #c7c7c7;
+
+  background: white;
 }
 
 .page .tableRow:last-child {
   border-bottom: none;
 }
 
+.page .tableHeaderRow {
+  position: sticky;
+  top: 0;
+
+  z-index: 5;
+
+  background: #203d73;
+  color: white;
+
+  font-weight: 700;
+}
+
+.page .tableRow span {
+  width: 145px;
+  min-width: 145px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 8px 10px;
+
+  border-right: 1px solid #d2d2d2;
+
+  overflow-wrap: anywhere;
+
+  font-size: 12px;
+}
+
+.page .tableHeaderRow span {
+  border-right-color: rgba(255, 255, 255, 0.25);
+}
+
+.page .tableRow span:last-child {
+  width: 120px;
+  min-width: 120px;
+
+  justify-content: center;
+
+  border-right: none;
+}
+
+.page .tableRow:not(.tableHeaderRow):hover {
+  background: #f2f5f9;
+}
+
+.page .tableRow span button {
+  min-height: 29px;
+
+  padding: 0 10px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.page .tableRow span button:hover {
+  background: #315a91;
+}
+
+
+/* =========================================================
+   14. BOTTOM ACTION BUTTONS
+   ========================================================= */
+
 .page .bottomButtons {
   width: 100%;
+
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+
+  flex-wrap: wrap;
+
+  margin-top: 10px;
 }
 
 .page .bottomButtons button {
-  width: 145px;
-  height: 32px;
+  min-width: 130px;
+  height: 34px;
+
+  padding: 0 14px;
+
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
+
   background: white;
   color: #222;
+
   font-size: 13px;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
 }
 
-.page .bottomButtons button:hover {
+.page .bottomButtons button:hover:not(:disabled) {
   background: #203d73;
   color: white;
 }
 
-.page .rightArea {
-  width: 360px;
+.page .bottomButtons button:disabled {
+  background: #e1e1e1;
+  color: #888;
 }
+
+
+/* =========================================================
+   15. RIGHT SIDE - SHELF CONTROLS
+   ========================================================= */
 
 .page .rightControls {
   width: 100%;
+
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 8px;
+
+  margin-bottom: 10px;
 }
 
 .page .row {
   width: 100%;
+
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
 .page .smallInput {
-  width: 175px;
+  flex: 1;
+
+  width: auto;
+  min-width: 0;
+
   height: 32px;
+
   padding: 0 10px;
+
   border: none;
   border-radius: 5px;
   outline: none;
-  background: white;
-  font-size: 13px;
-}
 
-.page .smallButton {
-  height: 32px;
-  padding: 0 11px;
-  border: none;
-  border-radius: 5px;
   background: white;
-  color: black;
+
   font-size: 12px;
-  cursor: pointer;
 }
 
+.page .smallButton,
 .page .actionButton {
-  height: 32px;
-  padding: 0 14px;
+  min-height: 32px;
+
+  flex-shrink: 0;
+
+  padding: 0 10px;
+
   border: none;
   border-radius: 5px;
+
   background: white;
   color: black;
-  font-size: 13px;
-  cursor: pointer;
+
+  font-size: 11px;
 }
 
 .page .smallButton:hover,
@@ -348,103 +844,511 @@
   color: white;
 }
 
+
+/* =========================================================
+   16. STAGE SETS
+
+   Important:
+   No fixed height.
+   The card grows naturally.
+
+   Only the lists/forms inside it get internal scrolling.
+   ========================================================= */
+
 .page .stageCard {
   width: 100%;
-  height: 600px;
-  padding: 16px 24px;
+  min-width: 0;
+
+  min-height: 420px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: clamp(14px, 1.5vw, 22px);
+
   border: 1px solid #222;
-  border-radius: 4px;
+  border-radius: 6px;
+
   background: #d9d9d9;
+
+  overflow: visible;
 }
 
 .page .stageCard h2 {
-  margin: 0 0 16px 0;
-  font-size: 23px;
+  margin: 0 0 14px;
+
+  font-size: 22px;
+}
+
+.page .stageCard h3 {
+  margin: 14px 0 6px;
+
+  font-size: 14px;
+
+  color: #172236;
 }
 
 .page .stageItem {
+  width: 100%;
+
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+
+  margin-bottom: 6px;
 }
 
 .page .stageItem label {
   margin-bottom: 4px;
-  font-size: 14px;
+
+  font-size: 13px;
   font-weight: 700;
 }
 
-.page .stageItem input {
-  width: 170px;
-  height: 27px;
+.page .stageItem input,
+.page .stageCard > input {
+  width: 100%;
+  height: 33px;
+
+  flex-shrink: 0;
+
   padding: 0 9px;
-  border: none;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 4px;
   outline: none;
-  background: #c9c9c9;
+
+  background: white;
+
   font-size: 12px;
 }
 
-.page .stageItem input::placeholder {
-  color: #333;
+.page .stageItem input:focus,
+.page .stageCard > input:focus {
+  border-color: #203d73;
 }
 
+
+/* =========================================================
+   17. STAGED ITEMS
+   ========================================================= */
+
+.page .stagedList {
+  width: 100%;
+
+  max-height: 160px;
+  min-height: 40px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  margin-top: 7px;
+
+  overflow-y: auto;
+}
+
+.page .stagedList:empty {
+  min-height: 0;
+}
+
+.page .stagedList button {
+  width: 100%;
+  min-height: 34px;
+
+  flex-shrink: 0;
+
+  padding: 6px 9px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 4px;
+
+  background: white;
+  color: #172236;
+
+  text-align: left;
+
+  font-size: 11px;
+}
+
+.page .stagedList button:hover {
+  background: #203d73;
+  color: white;
+
+  border-color: #203d73;
+}
+
+
+/* ---------- STAGED EDIT FORM ---------- */
+
+.page .stageCard > .editForm {
+  max-height: 260px;
+
+  margin-top: 10px;
+
+  padding: 10px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 5px;
+
+  background: #eeeeee;
+
+  overflow-y: auto;
+}
+
+
+/* =========================================================
+   18. COMMIT BUTTON
+   ========================================================= */
+
+.page .commitButton {
+  width: 100%;
+  min-height: 38px;
+
+  margin-top: 14px;
+
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #162953;
+  color: white;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.page .commitButton:hover:not(:disabled) {
+  background: #315a91;
+}
+
+.page .commitButton:disabled {
+  background: #9da4af;
+  color: #e8e8e8;
+}
+
+
+/* =========================================================
+   19. LOG INVENTORY POPUP
+   ========================================================= */
 
 .popupOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+
+  z-index: 1000;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.5);
+
+  backdrop-filter: blur(2px);
 }
 
 .popupBox {
-  background: white;
-  border-radius: 8px;
-  padding: 24px 32px;
-  width: 400px;
-  max-height: 80vh;
+  width: min(430px, 92vw);
+  max-height: 85vh;
+
+  padding: 24px 28px;
+
   overflow-y: auto;
+
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+
+  background: white;
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+}
+
+.popupBox h2 {
+  margin: 0 0 18px;
+
+  color: #172236;
+
+  font-size: 22px;
 }
 
 .popupField {
-  margin-bottom: 12px;
+  width: 100%;
+
   display: flex;
   flex-direction: column;
+
+  margin-bottom: 12px;
+}
+
+.popupField label {
+  margin-bottom: 4px;
+
+  color: #172236;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-transform: capitalize;
+}
+
+.popupField input {
+  width: 100%;
+  height: 35px;
+
+  padding: 0 10px;
+
+  border: 1px solid #b7b7b7;
+  border-radius: 5px;
+  outline: none;
+
+  background: white;
+
+  font-size: 13px;
+}
+
+.popupField input:focus {
+  border-color: #203d73;
 }
 
 .popupButtons {
   display: flex;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 10px;
+
+  flex-wrap: wrap;
+
   margin-top: 16px;
 }
 
-.page .topButton:hover,
-.page .userButton:hover,
-.page .exportButton:hover,
-.page .inventoryButton:hover {
+.popupButtons button {
+  min-width: 90px;
+  height: 34px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: #203d73;
+  color: white;
+
+  font-size: 13px;
+}
+
+.popupButtons button:hover {
   background: #315a91;
 }
 
-@media (max-width: 1500px) {
+
+/* =========================================================
+   20. SCROLLBARS
+   ========================================================= */
+
+.page .content::-webkit-scrollbar,
+.page .sidebar::-webkit-scrollbar,
+.page .tableBody::-webkit-scrollbar,
+.page .searchResults::-webkit-scrollbar,
+.page .stagedList::-webkit-scrollbar,
+.page .editForm::-webkit-scrollbar,
+.popupBox::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.page .content::-webkit-scrollbar-thumb,
+.page .sidebar::-webkit-scrollbar-thumb,
+.page .tableBody::-webkit-scrollbar-thumb,
+.page .searchResults::-webkit-scrollbar-thumb,
+.page .stagedList::-webkit-scrollbar-thumb,
+.page .editForm::-webkit-scrollbar-thumb,
+.popupBox::-webkit-scrollbar-thumb {
+  background: #a5a5a5;
+
+  border-radius: 10px;
+}
+
+.page .content::-webkit-scrollbar-thumb:hover,
+.page .sidebar::-webkit-scrollbar-thumb:hover,
+.page .tableBody::-webkit-scrollbar-thumb:hover,
+.page .searchResults::-webkit-scrollbar-thumb:hover,
+.page .stagedList::-webkit-scrollbar-thumb:hover,
+.page .editForm::-webkit-scrollbar-thumb:hover,
+.popupBox::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+
+/* =========================================================
+   21. RESPONSIVE - MEDIUM WINDOW
+   ========================================================= */
+
+@media (max-width: 1250px) {
+
   .page .mainGrid {
-    grid-template-columns: minmax(700px, 1fr) 320px;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(270px, 32%);
+  }
+
+  .page .sidebar {
+    width: 155px;
+  }
+
+  .page .sideItem {
+    font-size: 13px;
+  }
+
+  .page .cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page .tableRow span {
+    width: 130px;
+    min-width: 130px;
+  }
+
+  .page .tableRow span:last-child {
+    width: 110px;
+    min-width: 110px;
+  }
+}
+
+
+/* =========================================================
+   22. RESPONSIVE - NARROW WINDOW
+
+   Right column moves BELOW the left column.
+   Nothing gets cut off.
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+  .page .mainGrid {
+    grid-template-columns: 1fr;
   }
 
   .page .rightArea {
-    width: 320px;
+    width: 100%;
   }
 
-  .page .card {
-    height: 245px;
-  }
-
-  .page .table {
-    height: 450px;
+  .page .rightControls {
+    max-width: 600px;
   }
 
   .page .stageCard {
-    height: 560px;
+    min-height: 380px;
+  }
+
+  .page .inventory {
+    margin-left: 0;
+  }
+}
+
+
+/* =========================================================
+   23. RESPONSIVE - SMALL WINDOW
+   ========================================================= */
+
+@media (max-width: 750px) {
+
+  .page .header {
+    flex-wrap: wrap;
+  }
+
+  .page .logo {
+    width: 180px;
+    max-width: 100%;
+  }
+
+  .page .search {
+    width: 100%;
+  }
+
+  .page .sidebar {
+    width: 130px;
+
+    padding: 14px 8px;
+  }
+
+  .page .sideItem {
+    padding: 9px 7px;
+
+    font-size: 12px;
+  }
+
+  .page .content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .page .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .page .edit {
+    max-height: 350px;
+  }
+
+  .page .top {
+    align-items: stretch;
+  }
+
+  .page .exportButton {
+    flex: 1;
+
+    min-width: 130px;
+  }
+
+  .page .inventory {
+    width: 100%;
+  }
+
+  .page .inventoryButton {
+    flex: 1;
+  }
+
+  .page .row {
+    flex-wrap: wrap;
+  }
+
+  .page .smallInput {
+    width: 100%;
+
+    flex-basis: 100%;
+  }
+}
+
+
+/* =========================================================
+   24. VERY SMALL WINDOW
+   ========================================================= */
+
+@media (max-width: 520px) {
+
+  .page .sidebar {
+    width: 110px;
+  }
+
+  .page .sideItem {
+    font-size: 10px;
+  }
+
+  .page .backButton {
+    font-size: 10px;
+  }
+
+  .page .exportButton,
+  .page .inventoryButton {
+    width: 100%;
+
+    flex-basis: 100%;
+  }
+
+  .page .bottomButtons {
+    justify-content: stretch;
+  }
+
+  .page .bottomButtons button {
+    flex: 1;
   }
 }
