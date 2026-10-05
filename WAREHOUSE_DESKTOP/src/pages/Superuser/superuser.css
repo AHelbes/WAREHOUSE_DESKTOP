@@ -345,6 +345,11 @@
 ========================= */
 
 .superPage .userRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1.3fr 1fr;
+  align-items: center;
+  gap: 10px;
+
   cursor: pointer;
   padding: 6px;
   border-radius: 5px;
@@ -491,16 +496,44 @@
 .superPage .monthlyHeader {
   display: flex;
   align-items: center;
-
-  gap: 20px;
+  gap: 10px;
 }
 
 .superPage .monthlyHeader h2 {
-  margin: 0;
-
   margin-right: auto;
+}
 
-  font-size: 27px;
+.superPage .monthlyHeader select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.superPage .monthlyTable {
+  margin-top: 15px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.superPage .monthlyTableHeader,
+.superPage .monthlyTableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr 1fr;
+  gap: 10px;
+  padding: 7px 5px;
+}
+
+.superPage .monthlyTableHeader {
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+}
+
+.superPage .monthlyTableRow {
+  border-bottom: 1px solid #eee;
+}
+
+.superPage .monthlyEmpty {
+  padding: 15px 5px;
 }
 
 .superPage .monthlyHeader button {

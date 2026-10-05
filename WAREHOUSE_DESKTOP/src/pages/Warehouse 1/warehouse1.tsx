@@ -275,6 +275,48 @@ function Warehouse1({
     }
   }
 
+  /*Function to let superuser track user activity Im gonna cry*/
+  async function logUserActivity(
+  action: string,
+  itemIdentifier?: string,
+  details?: string
+) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    alert(`Could not get user: ${userError.message}`);
+    return;
+  }
+
+  if (!user) {
+    alert("Activity logging failed: No logged-in user found.");
+    return;
+  }
+
+  alert(`Trying to log activity for: ${user.email}`);
+
+  const { error } = await supabase
+    .from("user_activity")
+    .insert({
+      user_id: user.id,
+      warehouse: "warehouse_1",
+      action,
+      item_identifier: itemIdentifier ?? null,
+      details: details ?? null,
+    });
+
+  if (error) {
+    alert(`Activity logging failed: ${error.message}`);
+    console.error("Activity logging error:", error);
+    return;
+  }
+
+  alert("Activity logged successfully!");
+}
+
   /*Function for loading supabase data.*/
   async function fetchData() {
     setLoading(true);
@@ -382,18 +424,25 @@ function Warehouse1({
   /*Inserts the new unit straight into warehouse_laptops, then closes the
   popup and refreshes the main table.*/
   async function handleSubmitLog() {
-    const { error } = await supabase
-      .from("warehouse_laptops")
-      .insert(logFormValues);
+  const { error } = await supabase
+    .from("warehouse_laptops")
+    .insert(logFormValues);
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setShowLogPopup(false);
-      setLogFormValues({});
-      fetchData();
-    }
+  if (error) {
+    alert(error.message);
+    return;
   }
+
+  await logUserActivity(
+    "Added Inventory",
+    logFormValues.hostname || undefined,
+    "Added a new item to Warehouse 1"
+  );
+
+  setShowLogPopup(false);
+  setLogFormValues({});
+  fetchData();
+}
 
   function handleCancelLog() {
     setShowLogPopup(false);

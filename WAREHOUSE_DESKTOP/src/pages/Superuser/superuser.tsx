@@ -5,6 +5,11 @@ import { supabase } from "../../supabase/supabaseClient";
 import logo from "../../assets/logo.png";
 import background from "../../assets/bgWarehouse.png";
 
+import Papa from "papaparse";
+import QRCode from "qrcode";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 type SuperuserProps = {
   onBack: () => void;
   onWarehouse1: () => void;
@@ -72,16 +77,6 @@ function Superuser({
       setUsersLoading(false);
       return;
     }
-
-    /*
-      For every regular user, get their most recent activity.
-
-      We ONLY care about:
-      - warehouse
-      - timestamp
-
-      We don't show exactly what they changed.
-    */
 
     const usersWithActivity = await Promise.all(
       (profiles ?? []).map(async (profile) => {
@@ -190,28 +185,348 @@ function Superuser({
      ========================================================= */
 
   async function handleRemoveUser(user: RegularUser) {
+  const {
+    data: { user: currentUser },
+    error: currentUserError,
+  } = await supabase.auth.getUser();
 
-    const confirmed = window.confirm(
-      `Remove ${user.full_name}? This action cannot be undone.`
+  if (currentUserError || !currentUser) {
+    alert("Could not verify the logged-in user.");
+    return;
+  }
+
+  // Extra frontend protection.
+  // The Edge Function also checks this securely.
+  if (currentUser.id === user.id) {
+    alert("You cannot remove your own account.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Remove ${user.full_name}?\n\nThis will permanently delete their account and cannot be undone.`
+  );
+
+  if (!confirmed) return;
+
+  const { data, error } = await supabase.functions.invoke(
+    "delete-user",
+    {
+      body: {
+        userId: user.id,
+      },
+    }
+  );
+
+  if (error) {
+    console.error("Delete user function error:", error);
+
+    alert(
+      `Could not remove user: ${error.message}`
     );
 
-    if (!confirmed) return;
+    return;
+  }
 
-    const { error } = await supabase
-      .from("profiles")
-      .delete()
-      .eq("id", user.id);
+  if (data?.error) {
+    alert(`Could not remove user: ${data.error}`);
+    return;
+  }
+
+  alert(
+    data?.message ||
+      `${user.full_name} has been removed.`
+  );
+
+  setSelectedUser(null);
+
+  await fetchRegularUsers();
+}
+
+  /* =========================================================
+     MONTHLY WAREHOUSE
+     ========================================================= */
+  const [monthlyWarehouse, setMonthlyWarehouse] = useState<
+    "warehouse_laptops" | "warehouse_ce"
+  >("warehouse_laptops");
+
+  const [monthlyMonth, setMonthlyMonth] = useState(
+    new Date().getMonth() + 1
+  );
+
+  const [monthlyYear, setMonthlyYear] = useState(
+    new Date().getFullYear()
+  );
+
+  const [monthlyRows, setMonthlyRows] = useState<
+    Record<string, any>[]
+  >([]);
+
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+  const [monthlyError, setMonthlyError] = useState<string | null>(null);
+
+  async function fetchMonthlyWarehouse() {
+    setMonthlyLoading(true);
+    setMonthlyError(null);
+
+    // First day of selected month
+    const startDate = new Date(
+      monthlyYear,
+      monthlyMonth - 1,
+      1
+    );
+
+    // First day of NEXT month
+    const endDate = new Date(
+      monthlyYear,
+      monthlyMonth,
+      1
+    );
+
+    const { data, error } = await supabase
+      .from(monthlyWarehouse)
+      .select("*")
+      .gte("created_at", startDate.toISOString())
+      .lt("created_at", endDate.toISOString())
+      .order("created_at", { ascending: false });
 
     if (error) {
-      alert(`Could not remove user: ${error.message}`);
-      return;
+      setMonthlyError(error.message);
+      setMonthlyRows([]);
+    } else {
+      setMonthlyRows(data ?? []);
     }
 
-    alert(`${user.full_name} has been removed.`);
+    setMonthlyLoading(false);
+  }
+  
+  useEffect(() => {
+    fetchMonthlyWarehouse();
+  }, 
+  [monthlyWarehouse, monthlyMonth, monthlyYear]);
 
-    setSelectedUser(null);
+  /* =========================================================
+     GENERATE AND EXPORT
+     ========================================================= */
 
-    fetchRegularUsers();
+  function handleExportMonthlyCSV() {
+  if (monthlyRows.length === 0) {
+    alert("There are no units in the selected monthly warehouse.");
+    return;
+  }
+
+  const warehouseName =
+    monthlyWarehouse === "warehouse_laptops"
+      ? "warehouse1"
+      : "warehouse2";
+
+  const cleanedRows = monthlyRows.map((row) => {
+    const {
+      id,
+      created_by,
+      updated_by,
+      ...exportableFields
+    } = row;
+
+    return {
+      ...exportableFields,
+      qr_code:
+        monthlyWarehouse === "warehouse_laptops"
+          ? `warehouse_1:${id}`
+          : `warehouse_2:${id}`,
+    };
+  });
+
+  const csv = Papa.unparse(cleanedRows);
+
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    `${warehouseName}_${monthlyYear}_${String(monthlyMonth).padStart(
+      2,
+      "0"
+    )}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+  }
+
+  /* =========================================================
+     GENERATE QR
+     ========================================================= */
+
+  async function generateMonthlyQRCode(
+  row: Record<string, any>
+) {
+  if (!row.id) return null;
+
+  const warehousePrefix =
+    monthlyWarehouse === "warehouse_laptops"
+      ? "warehouse_1"
+      : "warehouse_2";
+
+  try {
+    return await QRCode.toDataURL(
+      `${warehousePrefix}:${row.id}`,
+      {
+        width: 400,
+        margin: 2,
+      }
+    );
+  } catch (error) {
+    console.error("QR generation failed:", error);
+    return null;
+  }
+  }
+
+  /* =========================================================
+     EXPORT PDF FILE
+     ========================================================= */
+
+  async function handleExportMonthlyPDF() {
+  if (monthlyRows.length === 0) {
+    alert("There are no units in the selected monthly warehouse.");
+    return;
+  }
+
+  const warehouseLabel =
+    monthlyWarehouse === "warehouse_laptops"
+      ? "Warehouse 1"
+      : "Warehouse 2";
+
+  const monthName = new Date(
+    monthlyYear,
+    monthlyMonth - 1
+  ).toLocaleString("default", {
+    month: "long",
+  });
+
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  pdf.setFontSize(18);
+
+  pdf.text(
+    `${warehouseLabel} - ${monthName} ${monthlyYear}`,
+    14,
+    15
+  );
+
+  pdf.setFontSize(10);
+
+  pdf.text(
+    `Generated: ${new Date().toLocaleString()}`,
+    14,
+    22
+  );
+
+  const ignoredColumns = [
+    "id",
+    "created_by",
+    "updated_by",
+  ];
+
+  const exportColumns = Object.keys(
+    monthlyRows[0]
+  ).filter(
+    (column) => !ignoredColumns.includes(column)
+  );
+
+  autoTable(pdf, {
+    startY: 28,
+
+    head: [
+      [
+        ...exportColumns,
+        "QR Identifier",
+      ],
+    ],
+
+    body: monthlyRows.map((row) => [
+      ...exportColumns.map((column) =>
+        String(row[column] ?? "")
+      ),
+
+      `${
+        monthlyWarehouse === "warehouse_laptops"
+          ? "warehouse_1"
+          : "warehouse_2"
+      }:${row.id}`,
+    ]),
+
+    styles: {
+      fontSize: 6,
+    },
+
+    headStyles: {
+      fontSize: 6,
+    },
+  });
+
+  // QR label pages
+  for (const row of monthlyRows) {
+    const qr = await generateMonthlyQRCode(row);
+
+    if (!qr) continue;
+
+    pdf.addPage();
+
+    pdf.setFontSize(18);
+
+    pdf.text(
+      row.hostname || "Warehouse Unit",
+      20,
+      25
+    );
+
+    pdf.setFontSize(11);
+
+    pdf.text(
+      `Unit ID: ${row.id}`,
+      20,
+      35
+    );
+
+    if (row.equipment_type) {
+      pdf.text(
+        `Equipment: ${row.equipment_type}`,
+        20,
+        43
+      );
+    }
+
+    pdf.addImage(
+      qr,
+      "PNG",
+      20,
+      55,
+      60,
+      60
+    );
+  }
+
+  const warehouseFile =
+    monthlyWarehouse === "warehouse_laptops"
+      ? "warehouse1"
+      : "warehouse2";
+
+  pdf.save(
+    `${warehouseFile}_${monthlyYear}_${String(
+      monthlyMonth
+    ).padStart(2, "0")}.pdf`
+  );
   }
 
   /* =========================================================
@@ -362,8 +677,20 @@ function Superuser({
 
           <div className="top">
 
-            <button className="exportButton">
-              Generate & Export
+            <button
+              className="exportButton"
+              onClick={handleExportMonthlyPDF}
+              disabled={monthlyRows.length === 0}              
+            >
+              Export PDF
+            </button>
+            
+            <button
+              className="exportButton"
+              onClick={handleExportMonthlyCSV}
+              disabled={monthlyRows.length === 0}
+            >
+              Export CSV
             </button>
 
             <button className="pullButton">
@@ -404,7 +731,7 @@ function Superuser({
 
                 <div className="userColumns">
                   <span>Name</span>
-                  <span>Last Update</span>
+                  <span>Last Warehouse Update</span>
                   <span>Timestamp</span>
                 </div>
 
@@ -474,37 +801,118 @@ function Superuser({
 
               </div>
 
-              {/* =================================================
-                  MONTHLY WAREHOUSE
-                  Still placeholder for now
-                  ================================================= */}
-
               <div className="monthlyCard">
-
                 <div className="monthlyHeader">
-
-                  <h2>
-                    Monthly Warehouse
-                  </h2>
-
-                  <button>
-                    Warehouse
-                  </button>
-
-                  <button>
-                    Month
-                  </button>
-
-                  <button>
-                    Year
-                  </button>
-
+                  <h2>Monthly Warehouse</h2>
+                  {/* Warehouse */}
+                  <select
+                    value={monthlyWarehouse}
+                    onChange={(e) =>
+                      setMonthlyWarehouse(
+                        e.target.value as
+                          | "warehouse_laptops"
+                          | "warehouse_ce"
+                        )
+                      }
+                      >
+                        <option value="warehouse_laptops">
+                          Warehouse 1
+                        </option>
+                        
+                        <option value="warehouse_ce">
+                          Warehouse 2
+                        </option>
+                  </select>
+                  
+                  {/* Month */}
+                  <select
+                    value={monthlyMonth}
+                    onChange={(e) =>
+                      setMonthlyMonth(Number(e.target.value))
+                    }
+                    >
+                      <option value={1}>January</option>
+                      <option value={2}>February</option>
+                      <option value={3}>March</option>
+                      <option value={4}>April</option>
+                      <option value={5}>May</option>
+                      <option value={6}>June</option>
+                      <option value={7}>July</option>
+                      <option value={8}>August</option>
+                      <option value={9}>September</option>
+                      <option value={10}>October</option>
+                      <option value={11}>November</option>
+                      <option value={12}>December</option>
+                  </select>
+                  
+                  {/* Year */}
+                  <select
+                    value={monthlyYear}
+                    onChange={(e) =>
+                      setMonthlyYear(Number(e.target.value))
+                    }
+                    >
+                      <option value={2025}>2025</option>
+                      <option value={2026}>2026</option>
+                      <option value={2027}>2027</option>
+                  </select>
                 </div>
-
+                
+                {/* Loading */}
+                {monthlyLoading && (
+                  <p>Loading warehouse...</p>
+                )}
+                
+                {/* Error */}
+                {monthlyError && (
+                  <p>Error: {monthlyError}</p>
+                )}
+                
+                {/* Results */}
+                {!monthlyLoading && !monthlyError && (
+                  <div className="monthlyTable">
+                    <div className="monthlyTableHeader">
+                      <span>Hostname</span>
+                      <span>Equipment</span>
+                      <span>Serial Number</span>
+                      <span>Date Added</span>
+                    </div>
+                    
+                    {monthlyRows.map((row) => (
+                    
+                    <div
+                      className="monthlyTableRow"
+                      key={row.id}
+                      >
+                    
+                      <span>
+                        {row.hostname || "—"}
+                      </span>
+                      <span>
+                        {row.equipment_type || "—"}
+                      </span>
+                      <span>
+                        {row.serial_number || "—"}
+                      </span>
+                      <span>
+                        {row.created_at
+                          ? new Date(
+                            row.created_at
+                          ).toLocaleDateString()
+                        : "—"}
+                      </span>
+                    </div>
+                  ))}
+                  
+                  {monthlyRows.length === 0 && (
+                    <p className="monthlyEmpty">
+                      No units found for this month.
+                    </p>
+                    )}
+                  </div>
+                )}
               </div>
-
             </div>
-
             {/* =================================================
                 RIGHT AREA
                 ================================================= */}
@@ -532,11 +940,11 @@ function Superuser({
                       </h3>
 
                       <p>
-                        {selectedUser.email}
+                        Email Address: {selectedUser.email}
                       </p>
 
                       <p>
-                        Last Update:{" "}
+                        Last Seen: {" "}
                         {formatTimestamp(
                           selectedUser.last_updated
                         )}
