@@ -22,6 +22,16 @@ function Warehouse1({
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  /*Memory boxes for searching and staging a unit*/
+  const [unitSearchTerm, setUnitSearchTerm] = useState("");
+  const [unitSearchResults, setUnitSearchResults] = useState<Record<string, any>[]>([]);
+
+  /*nakakaiyak na hahahaha tama na po. Memory boxes for the combined (laptop/ce) staged list and editing a staged item*/
+  const [stagingRows, setStagingRows] = useState<Record<string, any>[]>([]);
+  const [stagingSearchTerm, setStagingSearchTerm] = useState("");
+  const [selectedStagingId, setSelectedStagingId] = useState<string | null>(null);
+  const [stagingEditValues, setStagingEditValues] = useState<Record<string, any>>({});
+
   /*Memory boxes for actively loading data. columns for hostnames/status, rows for laptop unit, loading always starts true and lets user know the program is still loading, error starts null*/
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, any>[]>([]);
@@ -40,38 +50,183 @@ function Warehouse1({
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, any>>({});
   
+  /*Memory boxes for the Log Inventory function*/
+  const [showLogPopup, setShowLogPopup] = useState(false);
+  const [logFormValues, setLogFormValues] = useState<Record<string, string>>({});
+
+  /*Memory boxes for the shelf control management function*/
+  const [shelves, setShelves] = useState<{ id: string; shelf_name: string; status: string }[]>([]);
+  const [shelvesLoading, setShelvesLoading] = useState(true);
+  const [shelvesError, setShelvesError] = useState<string | null>(null);
+  const [shelfSearchTerm, setShelfSearchTerm] = useState("");
+  const [newShelfName, setNewShelfName] = useState("");
+
   /*Function for importing CSV files.*/
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-  const file = e.target.files?.[0];
-  if (!file) return;
+   const file = e.target.files?.[0];
+    if (!file) return;
 
-  setImporting(true);
+    setImporting(true);
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: async (results) => {
-      const parsedRows = results.data as Record<string, string>[];
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const parsedRows = results.data as Record<string, string>[];
+      
+        const { error } = await supabase
+          .from("staging_import")
+          .insert(parsedRows);
+      
+          if (error) {
+            alert(`Import failed: ${error.message}`);
+          } else {
+            alert(`Imported ${parsedRows.length} rows added to staging.`);
+            fetchStaging();
+          }
+      
+          setImporting(false);
+          e.target.value = "";
+        },
+    
+        error: (err) => {
+          alert(`Could not read file: ${err.message}`);
+          setImporting(false);
+        },
+      });
+    }
 
-      const { error } = await supabase
-        .from("warehouse_laptops")
-        .insert(parsedRows);
+  /*
+  Staging Functions
+  */
+  /*
+  Function for staging a new import. For example, user will upload a new CSV (import new data)
+  */
+  async function fetchStaging() {
+  const { data, error } = await supabase
+    .from("staging_import")
+    .select("*")
+    .order("created_at", { ascending: true });
 
-      if (error) {
-        alert(`Import failed: ${error.message}`);
-      } else {
-        alert(`Imported ${parsedRows.length} rows successfully.`);
-        fetchData();
-      }
+  if (!error) setStagingRows(data ?? []);
+  }
+  
+  useEffect(() => {
+    fetchStaging();
+  }, []);
 
-      setImporting(false);
-      e.target.value = "";
-    },
-    error: (err) => {
-      alert(`Could not read file: ${err.message}`);
-      setImporting(false);
-      },
-    });
+  /* 
+  Function to stage a unit (laptop/ce) from the search function
+  */
+  async function handleStageUnit(row: Record<string, any>) {
+    const { id, created_at, updated_at, created_by, updated_by, _sourceTable, ...rest } = row;
+
+    const { error } = await supabase
+      .from("staging_import")
+      .insert({ ...rest, source_unit_id: id });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setUnitSearchTerm("");
+      setUnitSearchResults([]);
+      fetchStaging();
+    }
+  }
+
+  /*
+  Function for staging: this is to search both tables (laptop/ce)
+  */
+  async function handleUnitSearch(term: string) {
+    setUnitSearchTerm(term);
+
+    if (!term.trim()) {
+      setUnitSearchResults([]);
+      return;
+    }
+
+    const [laptopResults, ceResults] = await Promise.all([
+      supabase.from("warehouse_laptops").select("*").ilike("hostname", `%${term}%`),
+      supabase.from("warehouse_ce").select("*").ilike("hostname", `%${term}%`),
+    ]);
+
+    const combined = [
+      ...(laptopResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_laptops" })),
+      ...(ceResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_ce" })),
+    ];
+
+    setUnitSearchResults(combined);
+  }
+
+    /*Filters the staged list down to whatever matches the second search box.*/
+  const filteredStagingRows = stagingRows.filter((row) =>
+    Object.values(row).some((val) =>
+      String(val ?? "").toLowerCase().includes(stagingSearchTerm.toLowerCase())
+    )
+  );
+
+  /*Clicking a staged item loads its values into the edit form.*/
+  function handleSelectStagingRow(row: Record<string, any>) {
+    setSelectedStagingId(row.id);
+    setStagingEditValues({ ...row });
+  }
+
+  /*Called as the user types into any field in the staged item's edit form.*/
+  function handleStagingFieldChange(field: string, value: string) {
+    setStagingEditValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  /*Saves edits to a staged item (still inside staging_import, not committed yet).*/
+  async function handleSaveStagingEdit() {
+    const { id, created_at, ...updatableFields } = stagingEditValues;
+
+    const { error } = await supabase
+      .from("staging_import")
+      .update(updatableFields)
+      .eq("id", selectedStagingId);
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setSelectedStagingId(null);
+      setStagingEditValues({});
+      fetchStaging();
+    }
+  }
+
+  /*Removes one item from staging entirely (changed your mind about staging it).*/
+  async function handleRemoveFromStaging(id: string) {
+    const { error } = await supabase
+      .from("staging_import")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+    } else {
+      if (selectedStagingId === id) setSelectedStagingId(null);
+      fetchStaging();
+    }
+  }
+
+  /*Commits everything currently in staging into the real tables (via the
+  commit_staged_imports SQL function), then empties staging.*/
+  async function handleCommitStaging() {
+    const confirmed = window.confirm(
+      `Commit all ${stagingRows.length} staged items to the real tables?`
+    );
+    if (!confirmed) return;
+
+    const { error } = await supabase.rpc("commit_staged_imports");
+
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Staged items committed.");
+      setStagingRows([]);
+      setSelectedStagingId(null);
+      fetchData(); // refresh the main laptops table
+    }
   }
 
   /*Function for loading supabase data.*/
@@ -167,6 +322,130 @@ function Warehouse1({
     )
   : [];
 
+  /*Function to open the popup page for the log inventory.*/
+  function handleOpenLogPopup() {
+    setLogFormValues({});
+    setShowLogPopup(true);
+  }
+
+  /*Updates one field as the user types.*/
+  function handleLogFieldChange(field: string, value: string) {
+    setLogFormValues((prev) => ({ ...prev, [field]: value }));
+  }
+
+  /*Inserts the new unit straight into warehouse_laptops, then closes the
+  popup and refreshes the main table.*/
+  async function handleSubmitLog() {
+    const { error } = await supabase
+      .from("warehouse_laptops")
+      .insert(logFormValues);
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setShowLogPopup(false);
+      setLogFormValues({});
+      fetchData();
+    }
+  }
+
+  function handleCancelLog() {
+    setShowLogPopup(false);
+    setLogFormValues({});
+  }
+
+
+  /*Function for the shelf control management*/
+    /*Function to set a shelf's status directly from the search input + FULL/AVAILABLE buttons.*/
+      /*Function for loading shelf data.*/
+  async function fetchShelves() {
+    setShelvesLoading(true);
+
+    const { data, error } = await supabase
+      .from("warehouse_shelves")
+      .select("*")
+      .order("shelf_name", { ascending: true });
+
+    if (error) setShelvesError(error.message);
+    else {
+      setShelves(data ?? []);
+      setShelvesError(null);
+    }
+
+    setShelvesLoading(false);
+  }
+
+  useEffect(() => {
+    fetchShelves();
+  }, []);
+
+  /*Function for the shelf search and filter*/
+  const filteredShelves = shelves.filter((shelf) =>
+    shelf.shelf_name.toLowerCase().includes(shelfSearchTerm.toLowerCase())
+  );
+
+   /*Function to set a shelf's status directly from the search input + FULL/AVAILABLE buttons.*/
+  async function handleSetShelfStatus(newStatus: "full" | "available") {
+    const match = shelves.find(
+      (shelf) => shelf.shelf_name.toLowerCase() === shelfSearchTerm.trim().toLowerCase()
+    );
+
+    if (!match) {
+      alert("No shelf found matching that name.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("warehouse_shelves")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", match.id);
+
+    if (error) alert(error.message);
+    else fetchShelves();
+  }
+
+  /*Function to add a new shelf.*/
+  async function handleAddShelf() {
+    if (!newShelfName.trim()) return;
+
+    const { error } = await supabase
+      .from("warehouse_shelves")
+      .insert({ shelf_name: newShelfName.trim().toUpperCase(), status: "available" });
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setNewShelfName("");
+      fetchShelves();
+    }
+  }
+  
+  /*Function to remove a shelf by name, typed into the second row's input.*/
+  async function handleRemoveShelf() {
+    const match = shelves.find(
+      (shelf) => shelf.shelf_name.toLowerCase() === newShelfName.trim().toLowerCase()
+    );
+
+    if (!match) {
+      alert("No shelf found matching that name.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Remove shelf "${match.shelf_name}"?`);
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("warehouse_shelves")
+      .delete()
+      .eq("id", match.id);
+
+    if (error) alert(error.message);
+    else {
+      setNewShelfName("");
+      fetchShelves();
+    }
+  }
+
   return (
     <main className="page">
       <header className="header">
@@ -221,7 +500,7 @@ function Warehouse1({
             className="backButton"
             onClick={onBack}
           >
-            Back to Login
+            Logout
           </button>
 
         </aside>
@@ -238,8 +517,11 @@ function Warehouse1({
             </button>
 
             <div className="inventory">
-              <button className="inventoryButton">
-                Login Inventory
+              <button 
+                className="inventoryButton"
+                onClick={handleOpenLogPopup}
+              >
+                Log Inventory
               </button>
 
               <button className="inventoryButton pullOut">
@@ -384,85 +666,158 @@ function Warehouse1({
             </div>
 
             <div className="rightArea">
+              {/*SHELF CONTROL MANAGEMENT CARD*/}
               <div className="rightControls">
                 <div className="row">
+                  {/*(1) SET THE SHELF'S STATUS AS FULL OR AVAILABLE*/}
                   <input
                     type="text"
-                    placeholder="..."
+                    placeholder="Search shelf..."
                     className="smallInput"
+                    value={shelfSearchTerm}
+                    onChange={(e) => setShelfSearchTerm(e.target.value)}
                   />
-                  <button className="smallButton">
-                    FULL
+                  <button 
+                    className="smallButton"
+                    onClick={() => handleSetShelfStatus("full")}
+                  >
+                    Full
                   </button>
 
-                  <button className="smallButton">
-                    AVAILABLE
+                  <button 
+                    className="smallButton"
+                    onClick={() => handleSetShelfStatus("available")}
+                  >
+                    Available
                   </button>
                 </div>
-
+                
+                {/*(2) ADD A NEW SHELF OR REMOVE AN EXISTING SHELF*/}
                 <div className="row">
                   <input
                     type="text"
-                    placeholder="..."
+                    placeholder="Search shelf..."
                     className="smallInput"
+                    value={newShelfName}
+                    onChange={(e) => setNewShelfName(e.target.value)}
                   />
 
-                  <button className="actionButton">
+                  <button 
+                    className="actionButton"
+                    onClick={handleAddShelf}
+                  >
                     Add
                   </button>
 
-                  <button className="actionButton">
+                  <button 
+                    className="actionButton"
+                    onClick={handleRemoveShelf}
+                  >
                     Remove
                   </button>
                 </div>
               </div>
 
+              {/*STAGING CARD FUNCTION*/}
               <div className="stageCard">
                 <h2>Stage Sets</h2>
                 <div className="stageItem">
-                  <label>Laptop</label>
+                  <label>Input</label>
                   <input
                     type="text"
-                    placeholder="Search by name"
+                    placeholder="Search laptop or CE unit by hostname..."
+                    value={unitSearchTerm}
+                    onChange={(e) => handleUnitSearch(e.target.value)}
                   />
                 </div>
 
-                <div className="stageItem">
-                  <label>Yubikey</label>
-                  <input
-                    type="text"
-                    placeholder="Search by name"
-                  />
+                <div className="searchResults">
+                  {unitSearchResults.map((row) => (
+                    <button key={row.id} onClick={() => handleStageUnit(row)}>
+                      {row.hostname} — {row.equipment_type}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="stageItem">
-                  <label>Monitor</label>
-                  <input
-                    type="text"
-                    placeholder="Search by name"
-                  />
+                <h3>Staged Items ({stagingRows.length})</h3>
+                <input
+                type="text"
+                placeholder="Search staged items..."
+                value={stagingSearchTerm}
+                onChange={(e) => setStagingSearchTerm(e.target.value)}
+                />
+
+                <div className="stagedList">
+                  {filteredStagingRows.map((row) => (
+                    <button key={row.id} onClick={() => handleSelectStagingRow(row)}>
+                      {row.hostname || "(no hostname)"} — {row.equipment_type}
+                      {row.source_unit_id ? " (editing)" : " (new)"}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="stageItem">
-                  <label>KMB</label>
-                  <input
-                    type="text"
-                    placeholder="Search by name"
-                  />
-                </div>
-
-                <div className="stageItem">
-                  <label>Headset</label>
-                  <input
-                    type="text"
-                    placeholder="Search by name"
-                  />
-                </div>
+                {selectedStagingId && (
+                  <div className="editForm">
+                    {Object.keys(stagingEditValues)
+                      .filter((field) => field !== "id" && field !== "created_at" && field !== "source_unit_id")
+                      .map((field) => (
+                        <div className="editField" key={field}>
+                          <label>{field}</label>
+                          <input
+                            type="text"
+                            value={stagingEditValues[field] ?? ""}
+                            onChange={(e) => handleStagingFieldChange(field, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                      
+                      <div className="editFormButtons">
+                        <button onClick={handleSaveStagingEdit}>Save</button>
+                        <button onClick={() => handleRemoveFromStaging(selectedStagingId)}>Remove from Stage</button>
+                      </div>
+                    </div>            
+                  )}
+                  
+                  <button
+                    className="commitButton"
+                    onClick={handleCommitStaging}
+                    disabled={stagingRows.length === 0}
+                  >
+                    Commit All ({stagingRows.length})
+                  </button>
+                
               </div>
             </div>
           </div>
         </section>
       </div>
+
+      {/*This is the pop up page for log inventory function*/}
+      {showLogPopup && (
+        <div className="popupOverlay">
+          <div className="popupBox">
+            <h2>Log New Unit</h2>
+            
+            {columns
+            .filter((col) => !["id", "created_at", "updated_at", "created_by", "updated_by"].includes(col))
+            .map((col) => (
+              <div className="popupField" key={col}>
+                <label>{col}</label>
+                <input
+                  type="text"
+                  value={logFormValues[col] ?? ""}
+                  onChange={(e) => handleLogFieldChange(col, e.target.value)}
+                />
+              </div>
+            ))}
+
+          <div className="popupButtons">
+            <button onClick={handleSubmitLog}>Submit</button>
+            <button onClick={handleCancelLog}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
     </main>
   );
 }

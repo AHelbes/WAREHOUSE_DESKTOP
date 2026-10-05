@@ -388,6 +388,38 @@
   color: #333;
 }
 
+
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popupBox {
+  background: white;
+  border-radius: 8px;
+  padding: 24px 32px;
+  width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.popupField {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.popupButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
 .page .topButton:hover,
 .page .userButton:hover,
 .page .exportButton:hover,
