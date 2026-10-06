@@ -494,47 +494,171 @@ function Superuser({
     },
   });
 
-  // QR label pages
-  for (const row of monthlyRows) {
-    const qr = await generateMonthlyQRCode(row);
+  /* =========================================================
+   QR LABEL PAGES - 4 COLUMNS x 4 ROWS
+   16 QR CODES MAXIMUM PER PAGE
+   ========================================================= */
 
-    if (!qr) continue;
+const qrColumns = 4;
+const qrRows = 4;
+const qrPerPage = qrColumns * qrRows; // 16
 
-    pdf.addPage();
+// Start QR labels on a fresh portrait page
+pdf.addPage("a4", "portrait");
 
-    pdf.setFontSize(18);
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
 
-    pdf.text(
-      row.hostname || "Warehouse Unit",
-      20,
-      25
-    );
+const marginX = 10;
+const marginY = 10;
 
-    pdf.setFontSize(11);
+const cellWidth =
+  (pageWidth - marginX * 2) / qrColumns;
 
-    pdf.text(
-      `Unit ID: ${row.id}`,
-      20,
-      35
-    );
+const cellHeight =
+  (pageHeight - marginY * 2) / qrRows;
 
-    if (row.equipment_type) {
-      pdf.text(
-        `Equipment: ${row.equipment_type}`,
-        20,
-        43
-      );
-    }
+const qrSize = 32;
 
-    pdf.addImage(
-      qr,
-      "PNG",
-      20,
-      55,
-      60,
-      60
-    );
+for (let i = 0; i < monthlyRows.length; i++) {
+  const row = monthlyRows[i];
+
+  // Create a new page after every 16 QR codes
+  if (i > 0 && i % qrPerPage === 0) {
+    pdf.addPage("a4", "portrait");
   }
+
+  const positionOnPage = i % qrPerPage;
+
+  const column =
+    positionOnPage % qrColumns;
+
+  const gridRow =
+    Math.floor(positionOnPage / qrColumns);
+
+  const cellX =
+    marginX + column * cellWidth;
+
+  const cellY =
+    marginY + gridRow * cellHeight;
+
+  const centerX =
+    cellX + cellWidth / 2;
+
+  /* -------------------------
+     GENERATE QR CODE
+     ------------------------- */
+
+  const qr =
+    await generateMonthlyQRCode(row);
+
+  if (!qr) continue;
+
+  /* -------------------------
+     QR POSITION
+     ------------------------- */
+
+  const qrX =
+    centerX - qrSize / 2;
+
+  const qrY =
+    cellY + 3;
+
+  pdf.addImage(
+    qr,
+    "PNG",
+    qrX,
+    qrY,
+    qrSize,
+    qrSize
+  );
+
+  /* -------------------------
+     INFORMATION UNDER QR
+     ------------------------- */
+
+  let textY =
+    qrY + qrSize + 4;
+
+  // HOSTNAME
+  pdf.setFont(
+    "helvetica",
+    "bold"
+  );
+
+  pdf.setFontSize(8);
+
+  pdf.text(
+    String(
+      row.hostname || "No Hostname"
+    ),
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  // CHECKED BY
+  pdf.setFont(
+    "helvetica",
+    "normal"
+  );
+
+  pdf.setFontSize(6.5);
+
+  textY += 4;
+
+  pdf.text(
+    `Checked By: ${
+      row.checked_by || "-"
+    }`,
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  // RACK & BAY
+  textY += 3.5;
+
+  pdf.text(
+    `Rack & Bay: ${
+      row.rack_and_bay ||
+      row.shelf ||
+      "-"
+    }`,
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  // DATE
+  textY += 3.5;
+
+  const dateValue =
+    row.created_at
+      ? new Date(
+          row.created_at
+        ).toLocaleDateString()
+      : "-";
+
+  pdf.text(
+    `Date: ${dateValue}`,
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+  }  
 
   const warehouseFile =
     monthlyWarehouse === "warehouse_laptops"

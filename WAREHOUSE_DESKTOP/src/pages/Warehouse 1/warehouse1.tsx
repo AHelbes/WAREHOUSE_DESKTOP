@@ -609,6 +609,165 @@ function Warehouse1({
     },
   });
 
+  const qrColumns = 4;
+const qrRows = 4;
+const qrPerPage = qrColumns * qrRows; // 16
+
+// Start QR labels on a new portrait page
+pdf.addPage("a4", "portrait");
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+const pageHeight = pdf.internal.pageSize.getHeight();
+
+const marginX = 10;
+const marginY = 10;
+
+const cellWidth =
+  (pageWidth - marginX * 2) / qrColumns;
+
+const cellHeight =
+  (pageHeight - marginY * 2) / qrRows;
+
+const qrSize = 32;
+
+for (let i = 0; i < stagingRows.length; i++) {
+  const row = stagingRows[i];
+
+  // After every 16 units, create another page
+  if (i > 0 && i % qrPerPage === 0) {
+    pdf.addPage("a4", "portrait");
+  }
+
+  const positionOnPage = i % qrPerPage;
+
+  const column = positionOnPage % qrColumns;
+  const gridRow = Math.floor(
+    positionOnPage / qrColumns
+  );
+
+  const cellX =
+    marginX + column * cellWidth;
+
+  const cellY =
+    marginY + gridRow * cellHeight;
+
+  const centerX =
+    cellX + cellWidth / 2;
+
+  /*
+    Generate QR
+  */
+  const unitId =
+    row.source_unit_id || row.id;
+
+  const qrValue =
+    `warehouse_1:${unitId}`;
+
+  const qrDataUrl =
+    await QRCode.toDataURL(qrValue, {
+      width: 300,
+      margin: 1,
+    });
+
+  /*
+    QR position
+  */
+  const qrX =
+    centerX - qrSize / 2;
+
+  const qrY =
+    cellY + 3;
+
+  pdf.addImage(
+    qrDataUrl,
+    "PNG",
+    qrX,
+    qrY,
+    qrSize,
+    qrSize
+  );
+
+  /*
+    Information underneath QR
+  */
+  let textY =
+    qrY + qrSize + 4;
+
+  pdf.setFont(
+    "helvetica",
+    "bold"
+  );
+
+  pdf.setFontSize(8);
+
+  pdf.text(
+    String(
+      row.hostname || "No Hostname"
+    ),
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  pdf.setFont(
+    "helvetica",
+    "normal"
+  );
+
+  pdf.setFontSize(6.5);
+
+  textY += 4;
+
+  pdf.text(
+    `Checked By: ${
+      row.checked_by || "-"
+    }`,
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  textY += 3.5;
+
+  pdf.text(
+    `Rack & Bay: ${
+      row.rack_and_bay ||
+      row.shelf ||
+      "-"
+    }`,
+    centerX,
+    textY,
+    {
+      align: "center",
+      maxWidth: cellWidth - 4,
+    }
+  );
+
+  textY += 3.5;
+
+  const dateValue =
+    row.created_at
+      ? new Date(
+          row.created_at
+        ).toLocaleDateString()
+      : new Date().toLocaleDateString();
+
+  pdf.text(
+    `Date: ${dateValue}`,
+    centerX,
+    textY,
+    {
+      align: "center",
+    }
+  );
+  }
+  
   pdf.save(
     `warehouse1_staged_${new Date()
       .toISOString()
@@ -1180,7 +1339,7 @@ async function handleRemoveShelf() {
               <div className="stageCard">
                 <h2>Stage Sets</h2>
                 <div className="stageItem">
-                  <label>Input</label>
+                  <label>Search and Input</label>
                   <input
                     type="text"
                     placeholder="Search laptop or CE unit by hostname..."
