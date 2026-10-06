@@ -13,6 +13,7 @@ import autoTable from "jspdf-autotable";
 type Warehouse2Props = {
   onBack: () => void;
   onWarehouse1: () => void;
+  onWarehouse3: () => void;
   onSuperuser: () => void;
   isSuperuser: boolean;
 };
@@ -20,6 +21,7 @@ type Warehouse2Props = {
 function Warehouse2({
   onBack,
   onWarehouse1,
+  onWarehouse3,
   onSuperuser,
   isSuperuser,
 }: Warehouse2Props) {
@@ -958,46 +960,73 @@ function Warehouse2({
   // ==========================================================
 
   async function handlePullOut() {
-    if (stagingRows.length === 0) {
-      alert("There are no staged units to pull out.");
-      return;
-    }
+  const existingUnits = stagingRows.filter(
+    (row) => row.source_unit_id
+  );
 
-    const existingUnits = stagingRows.filter((row) => row.source_unit_id);
-
-    if (existingUnits.length === 0) {
-      alert("There are no existing warehouse units staged for pull out.");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Pull out ${existingUnits.length} staged unit(s)?`
-    );
-
-    if (!confirmed) return;
-
-    const stagedIds = existingUnits.map((row) => row.id);
-
-    const { error } = await supabase
-      .from("staging_import")
-      .update({
-        status: "deployed",
-      })
-      .in("id", stagedIds);
-
-    if (error) {
-      alert(`Pull out failed: ${error.message}`);
-      return;
-    }
-
+  if (existingUnits.length === 0) {
     alert(
-      `${existingUnits.length} unit(s) marked as deployed. Click Commit All to finalize the pull out.`
+      "There are no existing warehouse units staged for pull out."
     );
-
-    fetchStaging();
+    return;
   }
 
-  // ==========================================================
+  const confirmed = window.confirm(
+    `PERMANENTLY DELETE ${existingUnits.length} unit(s) from Warehouse 1?\n\n` +
+      "This action cannot be undone."
+  );
+
+  if (!confirmed) return;
+
+  for (const row of existingUnits) {
+    const unitId = row.source_unit_id;
+
+    // Record the action BEFORE deleting the equipment.
+    await logUserActivity(
+      "PULL OUT",
+      row.hostname || row.serial_number || unitId,
+      `Permanently removed from Warehouse 2. Unit ID: ${unitId}`
+    );
+
+    const { error: deleteError } = await supabase
+      .from("warehouse_ce")
+      .delete()
+      .eq("id", unitId);
+
+    if (deleteError) {
+      alert(
+        `Could not permanently delete ${
+          row.hostname || unitId
+        }: ${deleteError.message}`
+      );
+      return;
+    }
+
+    const { error: stagingDeleteError } = await supabase
+      .from("staging_import")
+      .delete()
+      .eq("id", row.id);
+
+    if (stagingDeleteError) {
+      alert(
+        `The unit was deleted from Warehouse 2, but its staging copy could not be removed: ${stagingDeleteError.message}`
+      );
+      return;
+    }
+  }
+
+  alert(
+    `${existingUnits.length} unit(s) pulled out from Warehouse 2.`
+  );
+
+  setSelectedStagingId(null);
+  setStagingEditValues({});
+
+  await fetchStaging();
+  await fetchData();
+}
+
+// ==========================================================
   // SHELVES
   // ==========================================================
 
@@ -1171,12 +1200,18 @@ function Warehouse2({
         <aside className="sidebar">
           <button className="sideItem" onClick={onWarehouse1}>
             <span>Warehouse 1:</span>
-            <span>Laptops & Yubikey</span>
+            <span>Laptops</span>
           </button>
 
           <button className="sideItem active">
             <span>Warehouse 2:</span>
             <span>Computer Equipment</span>
+          </button>
+
+          <button className="sideItem"  
+            onClick={onWarehouse3}>
+            <span>Warehouse 3:</span>
+            <span>Yubikeys</span>
           </button>
 
           {isSuperuser && (

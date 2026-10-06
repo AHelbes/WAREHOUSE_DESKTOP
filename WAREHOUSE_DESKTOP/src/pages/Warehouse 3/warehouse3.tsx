@@ -1,4 +1,4 @@
-import "./warehouse1.css";
+import "./warehouse3.css";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../../supabase/supabaseClient";
 
@@ -11,21 +11,21 @@ import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type Warehouse1Props = {
+type Warehouse3Props = {
   onBack: () => void;
+  onWarehouse1: () => void;
   onWarehouse2: () => void;
-  onWarehouse3: () => void;
   onSuperuser: () => void;
   isSuperuser: boolean;
 };
 
-function Warehouse1({
+function Warehouse3({
   onBack,
+  onWarehouse1,
   onWarehouse2,
-  onWarehouse3,
   onSuperuser,
   isSuperuser
-}: Warehouse1Props) {
+}: Warehouse3Props) {
   /*Memory boxes for importing CSV files*/
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,8 +88,12 @@ function Warehouse1({
     skipEmptyLines: true,
 
     complete: async (results) => {
-      const parsedRows = results.data as Record<string, string>[];
-
+        const parsedRows = (
+            results.data as Record<string, string>[]
+        ).map((row) => ({
+            ...row,
+            equipment_type: "YUBIKEY",
+        }));
       console.log("CSV PARSED ROWS:", parsedRows);
 
       if (parsedRows.length === 0) {
@@ -146,10 +150,8 @@ function Warehouse1({
   const { data, error } = await supabase
     .from("staging_import")
     .select("*")
+    .eq("equipment_type", "YUBIKEY")
     .order("created_at", { ascending: false });
-
-  console.log("FETCH STAGING DATA:", data);
-  console.log("FETCH STAGING ERROR:", error);
 
   if (error) {
     alert(`Could not load staging: ${error.message}`);
@@ -191,14 +193,16 @@ function Warehouse1({
       return;
     }
 
-    const [laptopResults, ceResults] = await Promise.all([
+    const [laptopResults, ceResults, yubikeyResults] = await Promise.all([
       supabase.from("warehouse_laptops").select("*").ilike("hostname", `%${term}%`),
       supabase.from("warehouse_ce").select("*").ilike("hostname", `%${term}%`),
+      supabase.from("warehouse_yubikeys").select("*").ilike("hostname", `%${term}%`),
     ]);
 
     const combined = [
       ...(laptopResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_laptops" })),
       ...(ceResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_ce" })),
+      ...(yubikeyResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_yubikeys" })),
     ];
 
     setUnitSearchResults(combined);
@@ -337,7 +341,7 @@ function Warehouse1({
     .from("user_activity")
     .insert({
       user_id: user.id,
-      warehouse: "warehouse_1",
+      warehouse: "warehouse_3",
       action,
       item_identifier: itemIdentifier ?? null,
       details: details ?? null,
@@ -357,10 +361,10 @@ function Warehouse1({
     setLoading(true);
 
     const { data: columnData, error: columnError } = await supabase
-      .rpc("get_table_columns", { target_table: "warehouse_laptops" });
+      .rpc("get_table_columns", { target_table: "warehouse_yubikeys" });
 
     const { data: rowData, error: rowError } = await supabase
-      .from("warehouse_laptops")
+      .from("warehouse_yubikeys")
       .select("*")
       .order("hostname", { ascending: true });
   if (columnError) setError(columnError.message);
@@ -390,7 +394,7 @@ function Warehouse1({
     if (!newColumnName.trim()) return;
 
     const { error } = await supabase.rpc("admin_add_column", {
-      target_table: "warehouse_laptops",
+      target_table: "warehouse_yubikeys",
       new_column_name: newColumnName.trim(),
       new_column_type: newColumnType,
     });
@@ -418,7 +422,7 @@ function Warehouse1({
     const { id, created_at, created_by, ...updatableFields } = editValues;
 
     const { error } = await supabase
-      .from("warehouse_laptops")
+      .from("warehouse_yubikeys")
       .update(updatableFields)
       .eq("id", selectedUnitId);
 
@@ -456,12 +460,15 @@ function Warehouse1({
     setLogFormValues((prev) => ({ ...prev, [field]: value }));
   }
 
-  /*Inserts the new unit straight into warehouse_laptops, then closes the
+  /*Inserts the new unit straight into warehouse_yubikeys, then closes the
   popup and refreshes the main table.*/
   async function handleSubmitLog() {
   const { error } = await supabase
-    .from("warehouse_laptops")
-    .insert(logFormValues);
+    .from("warehouse_yubikeys")
+    .insert({
+        ...logFormValues,
+        equipment_type: "YUBIKEY",
+    });
 
   if (error) {
     alert(error.message);
@@ -471,7 +478,7 @@ function Warehouse1({
   await logUserActivity(
     "Added Inventory",
     logFormValues.hostname || undefined,
-    "Added a new item to Warehouse 1"
+    "Added a new item to Warehouse 3"
   );
 
   setShowLogPopup(false);
@@ -492,7 +499,7 @@ function Warehouse1({
   }
 
   try {
-    const qrValue = `warehouse_1:${row.id}`;
+    const qrValue = `warehouse_3:${row.id}`;
 
     const qrDataUrl = await QRCode.toDataURL(qrValue, {
       width: 400,
@@ -546,7 +553,7 @@ function Warehouse1({
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `warehouse1_staged_${new Date()
+    link.download = `warehouse3_yubikey_staged_${new Date()
       .toISOString()
       .slice(0, 10)}.csv`;
 
@@ -573,7 +580,7 @@ function Warehouse1({
   });
 
   pdf.setFontSize(18);
-  pdf.text("Warehouse 1 - Staged Units", 14, 15);
+  pdf.text("Warehouse 3 - Staged Units", 14, 15);
 
   pdf.setFontSize(10);
   pdf.text(
@@ -663,7 +670,7 @@ for (let i = 0; i < stagingRows.length; i++) {
     row.source_unit_id || row.id;
 
   const qrValue =
-    `warehouse_1:${unitId}`;
+    `warehouse_3:${unitId}`;
 
   const qrDataUrl =
     await QRCode.toDataURL(qrValue, {
@@ -771,7 +778,7 @@ for (let i = 0; i < stagingRows.length; i++) {
   }
   
   pdf.save(
-    `warehouse1_staged_${new Date()
+    `warehouse3_yubikey_staged_${new Date()
       .toISOString()
       .slice(0, 10)}.pdf`
   );
@@ -791,7 +798,7 @@ for (let i = 0; i < stagingRows.length; i++) {
   }
 
   const confirmed = window.confirm(
-    `PERMANENTLY DELETE ${existingUnits.length} unit(s) from Warehouse 1?\n\n` +
+    `PERMANENTLY DELETE ${existingUnits.length} unit(s) from Warehouse 3?\n\n` +
       "This action cannot be undone."
   );
 
@@ -808,7 +815,7 @@ for (let i = 0; i < stagingRows.length; i++) {
     );
 
     const { error: deleteError } = await supabase
-      .from("warehouse_laptops")
+      .from("warehouse_yubikeys")
       .delete()
       .eq("id", unitId);
 
@@ -835,7 +842,7 @@ for (let i = 0; i < stagingRows.length; i++) {
   }
 
   alert(
-    `${existingUnits.length} unit(s) permanently pulled out from Warehouse 1.`
+    `${existingUnits.length} unit(s) permanently pulled out from Warehouse 3.`
   );
 
   setSelectedStagingId(null);
@@ -1032,7 +1039,10 @@ async function handleRemoveShelf() {
 
       <div className="body">
         <aside className="sidebar">
-          <button className="sideItem active">
+          <button 
+            className="sideItem"
+            onClick={onWarehouse1}
+          >
             Warehouse 1:
             <span>Laptops</span>
           </button>
@@ -1046,8 +1056,7 @@ async function handleRemoveShelf() {
           </button>
 
           <button
-            className="sideItem"
-            onClick={onWarehouse3}
+            className="sideItem active"
           >
             <span>Warehouse 3:</span>
             <span>Yubikeys</span>
@@ -1444,7 +1453,16 @@ async function handleRemoveShelf() {
             <h2>Log New Unit</h2>
             
             {columns
-            .filter((col) => !["id", "created_at", "updated_at", "created_by", "updated_by"].includes(col))
+            .filter((col) => 
+                ![
+                    "id", 
+                    "created_at", 
+                    "updated_at", 
+                    "created_by", 
+                    "updated_by",
+                    "equipment_type",
+                ].includes(col)
+            )
             .map((col) => (
               <div className="popupField" key={col}>
                 <label>{col}</label>
@@ -1466,4 +1484,4 @@ async function handleRemoveShelf() {
     </main>
   );
 }
-export default Warehouse1;
+export default Warehouse3;

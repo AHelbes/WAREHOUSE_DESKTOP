@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import Login from "./pages/Login/login";
 import Warehouse1 from "./pages/Warehouse 1/warehouse1";
 import Warehouse2 from "./pages/Warehouse 2/warehouse2";
+import Warehouse3 from "./pages/Warehouse 3/warehouse3";
 import Superuser from "./pages/Superuser/superuser";
 import ResetPassword from "./pages/ResetPassword/resetPass";
 import { supabase } from "./supabase/supabaseClient";
@@ -14,6 +15,7 @@ type Page =
   | "login"
   | "warehouse1"
   | "warehouse2"
+  | "warehouse3"
   | "superuser"
   | "resetPassword";
 
@@ -171,25 +173,35 @@ function App() {
 
       {currentPage === "warehouse1" && (
         <Warehouse1
-          onBack={handleBackToLogin}
-          onWarehouse2={() =>
-            setCurrentPage("warehouse2")
-          }
-          onSuperuser={handleOpenSuperuser}
-          isSuperuser={userRole === "superuser"}
-        />
+        onBack={handleBackToLogin}
+        onWarehouse2={() => setCurrentPage("warehouse2")}
+        onWarehouse3={() => setCurrentPage("warehouse3")}
+        onSuperuser={handleOpenSuperuser}
+        isSuperuser={userRole === "superuser"}
+      />
       )}
 
       {/* ================= WAREHOUSE 2 ================= */}
 
       {currentPage === "warehouse2" && (
         <Warehouse2
-          onBack={handleBackToLogin}
-          onWarehouse1={() =>
-            setCurrentPage("warehouse1")
-          }
-          onSuperuser={handleOpenSuperuser}
-          isSuperuser={userRole === "superuser"}
+        onBack={handleBackToLogin}
+        onWarehouse1={() => setCurrentPage("warehouse1")}
+        onWarehouse3={() => setCurrentPage("warehouse3")}
+        onSuperuser={handleOpenSuperuser}
+        isSuperuser={userRole === "superuser"}
+        />
+      )}
+
+      {/* ================= WAREHOUSE 3 ================= */}
+
+      {currentPage === "warehouse3" && (
+        <Warehouse3
+        onBack={handleBackToLogin}
+        onWarehouse1={() => setCurrentPage("warehouse1")}
+        onWarehouse2={() => setCurrentPage("warehouse2")}
+        onSuperuser={handleOpenSuperuser}
+        isSuperuser={userRole === "superuser"}
         />
       )}
 
@@ -198,15 +210,12 @@ function App() {
       {currentPage === "superuser" &&
         userRole === "superuser" && (
           <Superuser
-            onBack={handleBackToLogin}
-            onWarehouse1={() =>
-              setCurrentPage("warehouse1")
-            }
-            onWarehouse2={() =>
-              setCurrentPage("warehouse2")
-            }
-          />
-        )}
+          onBack={handleBackToLogin}
+          onWarehouse1={() => setCurrentPage("warehouse1")}
+          onWarehouse2={() => setCurrentPage("warehouse2")}
+          onWarehouse3={() => setCurrentPage("warehouse3")}
+        />
+      )}
 
       {/* ================= RESET PASSWORD ================= */}
 

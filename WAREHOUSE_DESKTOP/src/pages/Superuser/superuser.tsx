@@ -14,6 +14,7 @@ type SuperuserProps = {
   onBack: () => void;
   onWarehouse1: () => void;
   onWarehouse2: () => void;
+  onWarehouse3: () => void;
 };
 
 /* =========================================================
@@ -33,6 +34,7 @@ function Superuser({
   onBack,
   onWarehouse1,
   onWarehouse2,
+  onWarehouse3,
 }: SuperuserProps) {
 
   /* =========================================================
@@ -65,43 +67,58 @@ function Superuser({
      ========================================================= */
 
   async function fetchRegularUsers() {
-    setUsersLoading(true);
+  setUsersLoading(true);
+  setUsersError(null);
 
-    const { data: profiles, error: profileError } = await supabase
+  const { data: profiles, error: profileError } =
+    await supabase
       .from("profiles")
       .select("id, full_name, email, role")
-      .eq("role", "regular")
+      .in("role", ["regular", "superuser"])
       .order("full_name", { ascending: true });
 
-    if (profileError) {
-      setUsersError(profileError.message);
-      setUsersLoading(false);
-      return;
-    }
+  if (profileError) {
+    setUsersError(profileError.message);
+    setUsersLoading(false);
+    return;
+  }
 
-    const usersWithActivity = await Promise.all(
-      (profiles ?? []).map(async (profile) => {
-
-        const { data: activity } = await supabase
+  const usersWithActivity = await Promise.all(
+    (profiles ?? []).map(async (profile) => {
+      const { data: activity, error: activityError } =
+        await supabase
           .from("user_activity")
-          .select("warehouse, created_at")
+          .select(
+            "warehouse, action, item_identifier, details, created_at"
+          )
           .eq("user_id", profile.id)
-          .order("created_at", { ascending: false })
+          .order("created_at", {
+            ascending: false,
+          })
           .limit(1)
           .maybeSingle();
 
-        return {
-          ...profile,
-          last_warehouse: activity?.warehouse ?? null,
-          last_updated: activity?.created_at ?? null,
-        };
-      })
-    );
+      if (activityError) {
+        console.error(
+          `Could not load activity for ${profile.email}:`,
+          activityError
+        );
+      }
 
-    setRegularUsers(usersWithActivity);
-    setUsersError(null);
-    setUsersLoading(false);
-  }
+      return {
+        ...profile,
+        last_warehouse:
+          activity?.warehouse ?? null,
+        last_updated:
+          activity?.created_at ?? null,
+      };
+    })
+  );
+
+  setRegularUsers(usersWithActivity);
+  setUsersError(null);
+  setUsersLoading(false);
+}
 
   /* Load regular users when page opens */
 
@@ -114,11 +131,20 @@ function Superuser({
      ========================================================= */
 
   const filteredUsers = regularUsers.filter((user) => {
-    const search = userSearchTerm.toLowerCase();
+    const search = userSearchTerm
+      .trim()
+      .toLowerCase();
 
     return (
-      user.full_name.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search)
+      String(user.full_name ?? "")
+        .toLowerCase()
+        .includes(search) ||
+      String(user.email ?? "")
+        .toLowerCase()
+        .includes(search) ||
+      String(user.role ?? "")
+        .toLowerCase()
+        .includes(search)
     );
   });
 
@@ -177,7 +203,6 @@ function Superuser({
   /* =========================================================
      REMOVE USER
   ========================================================= */
-
   async function handleRemoveUser(user: RegularUser) {
   const {
     data: { user: currentUser },
@@ -772,7 +797,7 @@ for (let i = 0; i < monthlyRows.length; i++) {
             onClick={onWarehouse1}
           >
             <span>Warehouse 1:</span>
-            <span>Laptops & Yubikey</span>
+            <span>Laptops</span>
           </button>
 
           <button
@@ -781,6 +806,14 @@ for (let i = 0; i < monthlyRows.length; i++) {
           >
             <span>Warehouse 2:</span>
             <span>Computer Equipment</span>
+          </button>
+
+          <button
+            className="sideItem"
+            onClick={onWarehouse3}
+          >
+            <span>Warehouse 3:</span>
+            <span>Yubikeys</span>
           </button>
 
           <button className="sideItem active">
@@ -902,6 +935,9 @@ for (let i = 0; i < monthlyRows.length; i++) {
 
                         <small>
                           {user.email}
+                          {user.role === "superuser"
+                            ? "Superuser"
+                            : "Regular User"}
                         </small>
 
                       </div>
@@ -1087,9 +1123,8 @@ for (let i = 0; i < monthlyRows.length; i++) {
                       </p>
 
                     </div>
-
+                    {/*
                     <div className="userActions">
-
                       <button
                         onClick={() =>
                           handleResetPassword(
@@ -1109,11 +1144,9 @@ for (let i = 0; i < monthlyRows.length; i++) {
                       >
                         Remove User
                       </button>
-
                     </div>
-
+                    */}
                   </>
-
                 ) : (
 
                   <div className="infoBlock">
