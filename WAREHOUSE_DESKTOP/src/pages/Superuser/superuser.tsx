@@ -38,13 +38,14 @@ function Superuser({
   /* =========================================================
      REGULAR USER MANAGEMENT
      ========================================================= */
-
   const [regularUsers, setRegularUsers] = useState<RegularUser[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<RegularUser | null>(null);
 
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
+
+  const [monthlySearchTerm, setMonthlySearchTerm] = useState("");
 
   /* =========================================================
      DELETE COLUMN
@@ -175,14 +176,7 @@ function Superuser({
 
   /* =========================================================
      REMOVE USER
-
-     IMPORTANT:
-     This currently removes their PROFILE.
-
-     It does NOT delete their Supabase Auth account.
-     We'll handle complete account deletion separately because
-     that needs secure server-side/admin functionality.
-     ========================================================= */
+  ========================================================= */
 
   async function handleRemoveUser(user: RegularUser) {
   const {
@@ -240,7 +234,7 @@ function Superuser({
   setSelectedUser(null);
 
   await fetchRegularUsers();
-}
+  }
 
   /* =========================================================
      MONTHLY WAREHOUSE
@@ -303,6 +297,31 @@ function Superuser({
     fetchMonthlyWarehouse();
   }, 
   [monthlyWarehouse, monthlyMonth, monthlyYear]);
+
+  /* =========================================================
+    SEARCH AND FILTER FUNCTION BAR
+  ========================================================= */
+
+  const filteredMonthlyRows = monthlyRows.filter((row) => {
+    const search = monthlySearchTerm.trim().toLowerCase();
+    
+    if (!search) return true;
+
+    return Object.entries(row).some(([key, value]) => {
+      // Don't search internal/database-only fields
+      if (
+        key === "id" ||
+        key === "created_by" ||
+        key === "updated_by"
+      ) {
+        return false;
+      }
+
+      return String(value ?? "")
+        .toLowerCase()
+        .includes(search);
+      });
+    });
 
   /* =========================================================
      GENERATE AND EXPORT
@@ -612,19 +631,9 @@ function Superuser({
           type="text"
           placeholder="Search & Filter...."
           className="search"
+          value={monthlySearchTerm}
+          onChange={(e) => setMonthlySearchTerm(e.target.value)}
         />
-
-        <button className="topButton">
-          Update
-        </button>
-
-        <button className="topButton">
-          Stage
-        </button>
-
-        <button className="userButton">
-          User
-        </button>
 
       </header>
 
@@ -878,7 +887,7 @@ function Superuser({
                       <span>Date Added</span>
                     </div>
                     
-                    {monthlyRows.map((row) => (
+                    {filteredMonthlyRows.map((row) => (
                     
                     <div
                       className="monthlyTableRow"
@@ -904,9 +913,12 @@ function Superuser({
                     </div>
                   ))}
                   
-                  {monthlyRows.length === 0 && (
+                  {filteredMonthlyRows.length === 0 && (
                     <p className="monthlyEmpty">
-                      No units found for this month.
+                      {monthlyRows.length === 0
+                        ? "No units found for this month."
+                        : "No units match your search."
+                      }
                     </p>
                     )}
                   </div>

@@ -1352,3 +1352,58 @@ button:disabled {
     flex: 1;
   }
 }
+
+.shelfSearchWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.shelfSearchWrapper .smallInput {
+  width: 100%;
+}
+
+.shelfSuggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+
+  max-height: 180px;
+  overflow-y: auto;
+
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.shelfSuggestion {
+  width: 100%;
+  border: none;
+  background: white;
+  padding: 8px 10px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.shelfSuggestion:hover {
+  background: #f2f2f2;
+}
+
+.shelfSuggestion span {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.shelfNoResult {
+  padding: 8px 10px;
+  font-size: 12px;
+}

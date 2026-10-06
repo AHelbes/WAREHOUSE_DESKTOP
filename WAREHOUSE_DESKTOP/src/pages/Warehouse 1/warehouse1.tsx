@@ -61,7 +61,14 @@ function Warehouse1({
   const [logFormValues, setLogFormValues] = useState<Record<string, string>>({});
 
   /*Memory boxes for the shelf control management function*/
-  const [shelves, setShelves] = useState<{ id: string; shelf_name: string; status: string }[]>([]);
+  const [shelves, setShelves] = useState<
+    { id: string; 
+      rack_and_bay: string;
+      package_status: string;
+      location: string;
+      status: string;
+    }[]
+  >([]);
   const [shelvesLoading, setShelvesLoading] = useState(true);
   const [shelvesError, setShelvesError] = useState<string | null>(null);
   const [shelfSearchTerm, setShelfSearchTerm] = useState("");
@@ -69,38 +76,63 @@ function Warehouse1({
 
   /*Function for importing CSV files.*/
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-   const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    setImporting(true);
+  setImporting(true);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const parsedRows = results.data as Record<string, string>[];
-      
-        const { error } = await supabase
-          .from("staging_import")
-          .insert(parsedRows);
-      
-          if (error) {
-            alert(`Import failed: ${error.message}`);
-          } else {
-            alert(`Imported ${parsedRows.length} rows added to staging.`);
-            fetchStaging();
-          }
-      
-          setImporting(false);
-          e.target.value = "";
-        },
-    
-        error: (err) => {
-          alert(`Could not read file: ${err.message}`);
-          setImporting(false);
-        },
-      });
-    }
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+
+    complete: async (results) => {
+      const parsedRows = results.data as Record<string, string>[];
+
+      console.log("CSV PARSED ROWS:", parsedRows);
+
+      if (parsedRows.length === 0) {
+        alert("The CSV contains no rows.");
+        setImporting(false);
+        e.target.value = "";
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("staging_import")
+        .insert(parsedRows)
+        .select();
+
+      if (error) {
+        console.error("STAGING INSERT ERROR:", error);
+        alert(`Import failed: ${error.message}`);
+      } else {
+        console.log("STAGING INSERTED ROWS:", data);
+
+        if (!data || data.length === 0) {
+          alert(
+            "Supabase accepted the request, but no staging rows were returned."
+          );
+        } else {
+          alert(
+            `Imported ${data.length} row(s) into staging successfully.`
+          );
+
+          await fetchStaging();
+        }
+      }
+
+      setImporting(false);
+      e.target.value = "";
+    },
+
+    error: (err) => {
+      console.error("CSV READ ERROR:", err);
+      alert(`Could not read file: ${err.message}`);
+      setImporting(false);
+      e.target.value = "";
+      },
+    });
+  }
 
   /*
   Staging Functions
@@ -114,17 +146,18 @@ function Warehouse1({
     .select("*")
     .order("created_at", { ascending: false });
 
+  console.log("FETCH STAGING DATA:", data);
+  console.log("FETCH STAGING ERROR:", error);
+
   if (error) {
-    console.error(error);
+    alert(`Could not load staging: ${error.message}`);
     return;
   }
 
+  console.log("STAGING ROW COUNT:", data?.length ?? 0);
+
   setStagingRows(data ?? []);
-  }
-  
-  useEffect(() => {
-    fetchStaging();
-  }, []);
+}
 
   /* 
   Function to stage a unit (laptop/ce) from the search function
@@ -633,96 +666,174 @@ function Warehouse1({
   fetchStaging();
 }
 
-  /*Function for the shelf control management*/
-    /*Function to set a shelf's status directly from the search input + FULL/AVAILABLE buttons.*/
-      /*Function for loading shelf data.*/
-  async function fetchShelves() {
-    setShelvesLoading(true);
+  //* SHELF CONTROL MANAGEMENT */
 
-    const { data, error } = await supabase
-      .from("warehouse_shelves")
-      .select("*")
-      .order("shelf_name", { ascending: true });
+async function fetchShelves() {
+  setShelvesLoading(true);
+  setShelvesError(null);
 
-    if (error) setShelvesError(error.message);
-    else {
-      setShelves(data ?? []);
-      setShelvesError(null);
-    }
+  const { data, error } = await supabase
+    .from("warehouse_shelves")
+    .select("*")
+    .order("rack_and_bay", { ascending: true });
 
-    setShelvesLoading(false);
+  console.log("SHELVES DATA:", data);
+  console.log("SHELVES ERROR:", error);
+
+  if (error) {
+    setShelvesError(error.message);
+    setShelves([]);
+  } else {
+    setShelves(data ?? []);
   }
 
-  useEffect(() => {
-    fetchShelves();
-  }, []);
+  setShelvesLoading(false);
+}
 
-  /*Function for the shelf search and filter*/
-  const filteredShelves = shelves.filter((shelf) =>
-    shelf.shelf_name.toLowerCase().includes(shelfSearchTerm.toLowerCase())
+useEffect(() => {
+  fetchShelves();
+}, []);
+
+
+/* Search shelves - NOT case sensitive */
+const filteredShelves = shelfSearchTerm.trim()
+  ? shelves.filter((shelf) =>
+      String(shelf.rack_and_bay ?? "")
+        .toLowerCase()
+        .includes(shelfSearchTerm.trim().toLowerCase())
+    )
+  : [];
+
+const filteredManageShelves = newShelfName.trim()
+  ? shelves.filter((shelf) =>
+      String(shelf.rack_and_bay ?? "")
+        .toLowerCase()
+        .includes(newShelfName.trim().toLowerCase())
+    )
+  : [];
+
+
+/* Set shelf Full / Available */
+async function handleSetShelfStatus(
+  newStatus: "Full" | "New and Available"
+) {
+  const search = shelfSearchTerm.trim().toLowerCase();
+
+  const match = shelves.find(
+    (shelf) =>
+      String(shelf.rack_and_bay ?? "")
+        .trim()
+        .toLowerCase() === search
   );
 
-   /*Function to set a shelf's status directly from the search input + FULL/AVAILABLE buttons.*/
-  async function handleSetShelfStatus(newStatus: "full" | "available") {
-    const match = shelves.find(
-      (shelf) => shelf.shelf_name.toLowerCase() === shelfSearchTerm.trim().toLowerCase()
-    );
-
-    if (!match) {
-      alert("No shelf found matching that name.");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("warehouse_shelves")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", match.id);
-
-    if (error) alert(error.message);
-    else fetchShelves();
+  if (!match) {
+    alert("Please select a shelf from the suggestions first.");
+    return;
   }
 
-  /*Function to add a new shelf.*/
-  async function handleAddShelf() {
-    if (!newShelfName.trim()) return;
+  const { error } = await supabase
+    .from("warehouse_shelves")
+    .update({
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", match.id);
 
-    const { error } = await supabase
-      .from("warehouse_shelves")
-      .insert({ shelf_name: newShelfName.trim().toUpperCase(), status: "available" });
-
-    if (error) {
-      alert(error.message);
-    } else {
-      setNewShelfName("");
-      fetchShelves();
-    }
+  if (error) {
+    alert(`Could not update shelf: ${error.message}`);
+    return;
   }
-  
-  /*Function to remove a shelf by name, typed into the second row's input.*/
-  async function handleRemoveShelf() {
-    const match = shelves.find(
-      (shelf) => shelf.shelf_name.toLowerCase() === newShelfName.trim().toLowerCase()
-    );
 
-    if (!match) {
-      alert("No shelf found matching that name.");
-      return;
-    }
+  alert(`${match.rack_and_bay} updated to ${newStatus}.`);
 
-    const confirmed = window.confirm(`Remove shelf "${match.shelf_name}"?`);
-    if (!confirmed) return;
+  setShelfSearchTerm("");
+  fetchShelves();
+}
 
-    const { error } = await supabase
-      .from("warehouse_shelves")
-      .delete()
-      .eq("id", match.id);
 
-    if (error) alert(error.message);
-    else {
-      setNewShelfName("");
-      fetchShelves();
-    }
+/* Add a new shelf */
+async function handleAddShelf() {
+  const rackAndBay = newShelfName.trim();
+
+  if (!rackAndBay) {
+    alert("Enter a rack and bay.");
+    return;
   }
+
+  // Prevent duplicate rack/bay names
+  const alreadyExists = shelves.some(
+    (shelf) =>
+      String(shelf.rack_and_bay ?? "")
+        .trim()
+        .toLowerCase() === rackAndBay.toLowerCase()
+  );
+
+  if (alreadyExists) {
+    alert("That shelf already exists.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("warehouse_shelves")
+    .insert({
+      rack_and_bay: rackAndBay.toUpperCase(),
+      status: "New and Available",
+    });
+
+  if (error) {
+    alert(`Could not add shelf: ${error.message}`);
+    return;
+  }
+
+  alert(`${rackAndBay.toUpperCase()} added successfully.`);
+
+  setNewShelfName("");
+  fetchShelves();
+}
+
+
+/* Remove an existing shelf */
+async function handleRemoveShelf() {
+  const search = newShelfName.trim().toLowerCase();
+
+  if (!search) {
+    alert("Search for a shelf first.");
+    return;
+  }
+
+  const match = shelves.find(
+    (shelf) =>
+      String(shelf.rack_and_bay ?? "")
+        .trim()
+        .toLowerCase() === search
+  );
+
+  if (!match) {
+    alert("Please select an existing shelf from the suggestions first.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Remove shelf "${match.rack_and_bay}"?`
+  );
+
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from("warehouse_shelves")
+    .delete()
+    .eq("id", match.id);
+
+  if (error) {
+    alert(`Could not remove shelf: ${error.message}`);
+    return;
+  }
+
+  alert(`${match.rack_and_bay} removed successfully.`);
+
+  setNewShelfName("");
+  fetchShelves();
+}
 
   return (
     <main className="page">
@@ -964,23 +1075,55 @@ function Warehouse1({
               <div className="rightControls">
                 <div className="row">
                   {/*(1) SET THE SHELF'S STATUS AS FULL OR AVAILABLE*/}
-                  <input
-                    type="text"
-                    placeholder="Search shelf..."
-                    className="smallInput"
-                    value={shelfSearchTerm}
-                    onChange={(e) => setShelfSearchTerm(e.target.value)}
-                  />
+                  <div className="shelfSearchWrapper">
+                    <input
+                      type="text"
+                      placeholder="Search shelf..."
+                      className="smallInput"
+                      value={shelfSearchTerm}
+                      onChange={(e) => setShelfSearchTerm(e.target.value)}
+                      autoComplete="off"
+                    />
+                    
+                    {shelfSearchTerm.trim() && filteredShelves.length > 0 && (
+                      <div className="shelfSuggestions">
+                        {filteredShelves.slice(0, 8).map((shelf) => (
+                          <button
+                            type="button"
+                            key={shelf.id}
+                            className="shelfSuggestion"
+                            onClick={() =>
+                              setShelfSearchTerm(shelf.rack_and_bay)
+                            }
+                            >
+                              <span>{shelf.rack_and_bay}</span>
+                              <span>{shelf.status}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                    {shelfSearchTerm.trim() &&
+                    filteredShelves.length === 0 &&
+                    !shelvesLoading && (
+                      <div className="shelfSuggestions">
+                        <div className="shelfNoResult">
+                          No shelf found
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <button 
                     className="smallButton"
-                    onClick={() => handleSetShelfStatus("full")}
+                    onClick={() => handleSetShelfStatus("Full")}
                   >
                     Full
                   </button>
 
                   <button 
                     className="smallButton"
-                    onClick={() => handleSetShelfStatus("available")}
+                    onClick={() => handleSetShelfStatus("Available")}
                   >
                     Available
                   </button>
@@ -988,13 +1131,34 @@ function Warehouse1({
                 
                 {/*(2) ADD A NEW SHELF OR REMOVE AN EXISTING SHELF*/}
                 <div className="row">
-                  <input
-                    type="text"
-                    placeholder="Search shelf..."
-                    className="smallInput"
-                    value={newShelfName}
-                    onChange={(e) => setNewShelfName(e.target.value)}
-                  />
+                  <div className="shelfSearchWrapper">
+                    <input
+                      type="text"
+                      placeholder="Search or enter shelf..."
+                      className="smallInput"
+                      value={newShelfName}
+                      onChange={(e) => setNewShelfName(e.target.value)}
+                      autoComplete="off"
+                    />
+                  
+                    {newShelfName.trim() && filteredManageShelves.length > 0 && (
+                      <div className="shelfSuggestions">
+                        {filteredManageShelves.slice(0, 8).map((shelf) => (
+                          <button
+                            type="button"
+                            key={shelf.id}
+                            className="shelfSuggestion"
+                            onClick={() =>
+                              setNewShelfName(shelf.rack_and_bay)
+                            }
+                          >
+                            <span>{shelf.rack_and_bay}</span>
+                            <span>{shelf.status}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <button 
                     className="actionButton"
