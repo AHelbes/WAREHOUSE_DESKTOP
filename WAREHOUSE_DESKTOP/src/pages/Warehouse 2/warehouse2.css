@@ -8,6 +8,10 @@
   background: white;
 }
 
+/* =========================================================
+   HEADER
+   ========================================================= */
+
 .page .header {
   width: 100%;
   height: 68px;
@@ -16,6 +20,7 @@
   align-items: center;
   gap: 10px;
   padding: 0 22px 0 10px;
+  box-sizing: border-box;
   background: white;
 }
 
@@ -65,6 +70,10 @@
   cursor: pointer;
 }
 
+/* =========================================================
+   BODY / SIDEBAR
+   ========================================================= */
+
 .page .body {
   flex: 1;
   display: flex;
@@ -79,29 +88,22 @@
   flex-direction: column;
   gap: 14px;
   padding: 20px 16px;
+  box-sizing: border-box;
   background: white;
 }
 
 .page .sideItem {
   width: 100%;
   padding: 11px 10px;
-
   border: none;
   border-radius: 8px;
-
   background: transparent;
   color: #172236;
-
   text-align: left;
-
   font-size: 17px;
   line-height: 1.3;
-
   cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .page .sideItem span {
@@ -134,12 +136,17 @@
   background: #315a91;
 }
 
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
 .page .content {
   flex: 1;
   min-width: 0;
   min-height: 0;
   padding: 12px 24px 14px;
-  overflow: hidden;
+  box-sizing: border-box;
+  overflow: auto;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -147,27 +154,30 @@
 
 .page .top {
   width: 100%;
-  height: 44px;
+  min-height: 44px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
 .page .exportButton {
-  width: 245px;
+  min-width: 180px;
   height: 38px;
+  padding: 0 22px;
   border: none;
   border-radius: 22px;
   background: #203d73;
   color: white;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
 }
 
 .page .inventory {
   display: flex;
   gap: 12px;
+  margin-left: auto;
 }
 
 .page .inventoryButton {
@@ -186,17 +196,42 @@
   padding-right: 18px;
 }
 
+.page .topButton:hover,
+.page .userButton:hover,
+.page .exportButton:hover,
+.page .inventoryButton:hover {
+  background: #315a91;
+}
+
+.page button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   MAIN GRID
+   ========================================================= */
+
 .page .mainGrid {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(820px, 1fr) 360px;
+  grid-template-columns: minmax(700px, 1fr) 360px;
   gap: 18px;
   align-items: start;
 }
 
 .page .leftArea {
   width: 100%;
+  min-width: 0;
 }
+
+.page .rightArea {
+  width: 360px;
+}
+
+/* =========================================================
+   TOP CARDS
+   ========================================================= */
 
 .page .cards {
   width: 100%;
@@ -211,18 +246,149 @@
   padding: 15px 17px;
   border: 1px solid #222;
   border-radius: 4px;
+  box-sizing: border-box;
   background: #d9d9d9;
+  overflow-y: auto;
 }
 
 .page .card h2 {
-  margin: 0;
+  margin: 0 0 15px;
   font-size: 20px;
   font-weight: 700;
+}
+
+.page .card p {
+  margin: 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.page .card input,
+.page .card select {
+  width: 100%;
+  height: 32px;
+  margin-bottom: 8px;
+  padding: 0 10px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  background: white;
+  font-size: 13px;
+}
+
+.page .card > button {
+  min-width: 110px;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 4px;
+  background: #162953;
+  color: white;
+  cursor: pointer;
+}
+
+.page .card > button:hover {
+  background: #315a91;
 }
 
 .page .edit {
   width: auto;
 }
+
+/* =========================================================
+   SEARCH RESULTS
+   ========================================================= */
+
+.page .searchResults {
+  width: 100%;
+  max-height: 125px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.page .searchResults button {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  background: white;
+  color: #222;
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page .searchResults button:hover {
+  background: #203d73;
+  color: white;
+}
+
+/* =========================================================
+   EDIT FORM
+   ========================================================= */
+
+.page .editForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.page .editField {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.page .editField label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.page .editField input {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  margin: 0;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  box-sizing: border-box;
+  outline: none;
+  background: white;
+  font-size: 12px;
+}
+
+.page .editFormButtons {
+  display: flex;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+.page .editFormButtons button {
+  min-height: 29px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 4px;
+  background: #162953;
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.page .editFormButtons button:hover {
+  background: #315a91;
+}
+
+/* =========================================================
+   WAREHOUSE TABLE
+   ========================================================= */
 
 .page .table {
   width: 100%;
@@ -230,37 +396,82 @@
   overflow: hidden;
   border: 1px solid #222;
   border-radius: 4px;
+  box-sizing: border-box;
   background: white;
   display: flex;
   flex-direction: column;
 }
 
 .page .tableTitle {
-  height: 80px;
+  height: 65px;
   flex-shrink: 0;
   display: flex;
-  align-items: flex-start;
-  padding: 16px 34px;
+  align-items: center;
+  padding: 0 25px;
   border-bottom: 2px solid #222;
-  font-size: 28px;
+  box-sizing: border-box;
+  font-size: 25px;
   font-weight: 700;
 }
 
 .page .tableBody {
   width: 100%;
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  overflow: auto;
 }
 
 .page .tableRow {
-  flex: 1;
-  border-bottom: 2px solid #222;
+  min-width: max-content;
+  min-height: 42px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(135px, 1fr);
+  align-items: stretch;
+  border-bottom: 1px solid #aaa;
 }
 
-.page .tableRow:last-child {
-  border-bottom: none;
+.page .tableRow > span {
+  min-width: 135px;
+  display: flex;
+  align-items: center;
+  padding: 7px 9px;
+  border-right: 1px solid #ccc;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  font-size: 11px;
 }
+
+.page .tableRow > span:last-child {
+  border-right: none;
+}
+
+.page .tableHeaderRow {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 42px;
+  background: #d9d9d9;
+  font-weight: 700;
+}
+
+.page .tableRow button {
+  min-height: 25px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  background: #162953;
+  color: white;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.page .tableRow button:hover {
+  background: #315a91;
+}
+
+/* =========================================================
+   BOTTOM BUTTONS
+   ========================================================= */
 
 .page .bottomButtons {
   width: 100%;
@@ -271,27 +482,26 @@
 }
 
 .page .bottomButtons button {
-  width: 145px;
+  min-width: 145px;
   height: 32px;
+  padding: 0 12px;
   border: none;
   border-radius: 4px;
   background: white;
   color: #222;
   font-size: 13px;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.page .bottomButtons button:hover {
+.page .bottomButtons button:hover:not(:disabled) {
   background: #203d73;
   color: white;
 }
 
-.page .rightArea {
-  width: 360px;
-}
+/* =========================================================
+   RIGHT CONTROLS / SHELVES
+   ========================================================= */
 
 .page .rightControls {
   width: 100%;
@@ -304,8 +514,14 @@
 .page .row {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
+}
+
+.page .shelfSearchWrapper {
+  position: relative;
+  width: 175px;
+  flex-shrink: 0;
 }
 
 .page .smallInput {
@@ -314,30 +530,31 @@
   padding: 0 10px;
   border: none;
   border-radius: 5px;
+  box-sizing: border-box;
   outline: none;
   background: white;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .page .smallButton {
   height: 32px;
-  padding: 0 11px;
+  padding: 0 10px;
   border: none;
   border-radius: 5px;
   background: white;
   color: black;
-  font-size: 12px;
+  font-size: 10px;
   cursor: pointer;
 }
 
 .page .actionButton {
   height: 32px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: none;
   border-radius: 5px;
   background: white;
   color: black;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -347,24 +564,85 @@
   color: white;
 }
 
+.page .shelfSuggestions {
+  position: absolute;
+  top: 36px;
+  left: 0;
+  z-index: 30;
+  width: 250px;
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  background: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.page .shelfSuggestion {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  background: white;
+  color: #222;
+  text-align: left;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.page .shelfSuggestion:hover {
+  background: #203d73;
+  color: white;
+}
+
+.page .shelfNoResult {
+  padding: 10px;
+  font-size: 11px;
+  color: #555;
+}
+
+.page .shelfError {
+  padding: 6px;
+  border-radius: 4px;
+  background: white;
+  color: #a40000;
+  font-size: 11px;
+}
+
+/* =========================================================
+   STAGE CARD
+   ========================================================= */
+
 .page .stageCard {
   width: 100%;
   height: 680px;
-  padding: 16px 24px;
+  padding: 16px 20px;
   border: 1px solid #222;
   border-radius: 4px;
+  box-sizing: border-box;
+  overflow-y: auto;
   background: #d9d9d9;
 }
 
 .page .stageCard h2 {
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
   font-size: 23px;
+}
+
+.page .stageCard h3 {
+  margin: 16px 0 8px;
+  font-size: 15px;
 }
 
 .page .stageItem {
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .page .stageItem label {
@@ -373,30 +651,195 @@
   font-weight: 700;
 }
 
-.page .stageItem input {
-  width: 170px;
-  height: 27px;
+.page .stageItem input,
+.page .stageCard > input {
+  width: 100%;
+  height: 30px;
   padding: 0 9px;
-  border: none;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  box-sizing: border-box;
   outline: none;
-  background: #c9c9c9;
-  font-size: 12px;
+  background: white;
+  font-size: 11px;
 }
 
-.page .stageItem input::placeholder {
-  color: #333;
+.page .stageItem input::placeholder,
+.page .stageCard > input::placeholder {
+  color: #555;
 }
 
-.page .topButton:hover,
-.page .userButton:hover,
-.page .exportButton:hover,
-.page .inventoryButton:hover {
+.page .stageCard .searchResults {
+  max-height: 120px;
+  margin-top: 6px;
+}
+
+.page .stagedList {
+  width: 100%;
+  max-height: 135px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 7px;
+  overflow-y: auto;
+}
+
+.page .stagedList button {
+  width: 100%;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: white;
+  color: #222;
+  text-align: left;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.page .stagedList button:hover {
+  background: #203d73;
+  color: white;
+}
+
+.page .stageCard .editForm {
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #aaa;
+}
+
+.page .commitButton {
+  width: 100%;
+  min-height: 35px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 5px;
+  background: #162953;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.page .commitButton:hover:not(:disabled) {
   background: #315a91;
 }
 
+/* =========================================================
+   LOG INVENTORY POPUP
+   ========================================================= */
+
+.page .popupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.page .popupBox {
+  width: 520px;
+  max-width: 95vw;
+  max-height: 85vh;
+  padding: 22px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  background: #d9d9d9;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.page .popupBox h2 {
+  margin: 0 0 18px;
+  color: #172236;
+  font-size: 22px;
+}
+
+.page .popupField {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.page .popupField label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.page .popupField input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  background: white;
+  font-size: 13px;
+}
+
+.page .popupButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.page .popupButtons button {
+  min-width: 100px;
+  height: 34px;
+  border: none;
+  border-radius: 4px;
+  background: #162953;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page .popupButtons button:hover {
+  background: #315a91;
+}
+
+/* =========================================================
+   SCROLLBARS
+   ========================================================= */
+
+.page .tableBody::-webkit-scrollbar,
+.page .card::-webkit-scrollbar,
+.page .stageCard::-webkit-scrollbar,
+.page .searchResults::-webkit-scrollbar,
+.page .stagedList::-webkit-scrollbar,
+.page .shelfSuggestions::-webkit-scrollbar,
+.page .popupBox::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.page .tableBody::-webkit-scrollbar-thumb,
+.page .card::-webkit-scrollbar-thumb,
+.page .stageCard::-webkit-scrollbar-thumb,
+.page .searchResults::-webkit-scrollbar-thumb,
+.page .stagedList::-webkit-scrollbar-thumb,
+.page .shelfSuggestions::-webkit-scrollbar-thumb,
+.page .popupBox::-webkit-scrollbar-thumb {
+  background: #777;
+  border-radius: 5px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
 @media (max-width: 1500px) {
   .page .mainGrid {
-    grid-template-columns: minmax(700px, 1fr) 320px;
+    grid-template-columns: minmax(620px, 1fr) 320px;
   }
 
   .page .rightArea {
@@ -413,5 +856,33 @@
 
   .page .stageCard {
     height: 560px;
+  }
+
+  .page .shelfSearchWrapper,
+  .page .smallInput {
+    width: 145px;
+  }
+
+  .page .smallButton {
+    padding: 0 7px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .page .content {
+    overflow: auto;
+  }
+
+  .page .mainGrid {
+    min-width: 950px;
+  }
+
+  .page .header {
+    min-width: 1000px;
+  }
+
+  .page .search {
+    width: 300px;
   }
 }
