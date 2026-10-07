@@ -1,12 +1,75 @@
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.page button,
+.page input,
+.page select {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.page button {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.page button:not(:disabled) {
+  cursor: pointer;
+}
+
+.page button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.page button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
 .page {
+  position: fixed;
+  inset: 0;
+
   width: 100vw;
   height: 100vh;
+
+  min-width: 0;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
+
   overflow: hidden;
-  font-family: Arial, Helvetica, sans-serif;
-  background: white;
+
+  background: #eeeeee;
 }
+
 
 /* =========================================================
    HEADER
@@ -15,95 +78,168 @@
 .page .header {
   width: 100%;
   height: 68px;
-  flex-shrink: 0;
+
+  min-width: 0;
+  min-height: 68px;
+  max-height: 68px;
+
+  flex: 0 0 68px;
+
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 22px 0 10px;
-  box-sizing: border-box;
-  background: white;
+
+  gap: clamp(10px, 1.5vw, 24px);
+
+  padding: 8px clamp(12px, 2vw, 22px);
+
+  overflow: hidden;
+
+  background: #eeeeee;
 }
 
 .page .logo {
-  width: 275px;
+  width: clamp(190px, 18vw, 275px);
+  max-width: 35%;
   height: auto;
+
+  flex: 0 1 auto;
+
   object-fit: contain;
-  margin-right: 30px;
 }
 
-.page .search {
-  width: 390px;
+.page .header .search {
+  width: clamp(220px, 32vw, 390px);
+  max-width: 100%;
   height: 40px;
+
+  flex: 0 1 390px;
+
   padding: 0 22px;
+
   border: none;
   border-radius: 22px;
   outline: none;
-  background: #162953;
-  color: white;
-  font-size: 15px;
+
+  background: #122047;
+  color: #eeeeee;
+
+  font-size: clamp(12px, 1vw, 15px);
 }
 
-.page .search::placeholder {
-  color: white;
+.page .header .search::placeholder {
+  color: #eeeeee;
 }
 
 .page .topButton {
+  min-width: 90px;
   height: 38px;
+
+  flex: 0 1 auto;
+
   padding: 0 17px;
+
   border: none;
   border-radius: 5px;
-  background: #162953;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
+
+  background: #122047;
+  color: #eeeeee;
+
+  font-size: clamp(11px, 1vw, 15px);
+
+  white-space: nowrap;
 }
 
 .page .userButton {
-  width: 140px;
+  width: clamp(100px, 10vw, 140px);
+  min-width: 100px;
   height: 40px;
+
+  flex-shrink: 0;
+
   margin-left: auto;
+
   border: none;
   border-radius: 22px;
+
   background: #203d73;
   color: white;
-  font-size: 15px;
-  cursor: pointer;
+
+  font-size: clamp(11px, 1vw, 15px);
+
+  white-space: nowrap;
 }
 
+.page .topButton:hover,
+.page .userButton:hover {
+  background: #01a1df;
+}
+
+
 /* =========================================================
-   BODY / SIDEBAR
+   BODY
    ========================================================= */
 
 .page .body {
-  flex: 1;
-  display: flex;
+  width: 100%;
+  height: 0;
+
+  min-width: 0;
   min-height: 0;
+
+  flex: 1 1 0;
+
+  display: flex;
+  align-items: stretch;
+
   overflow: hidden;
 }
 
-.page .sidebar {
-  width: 190px;
-  flex-shrink: 0;
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.page .body .sidebar {
+  width: clamp(120px, 13vw, 190px);
+  height: 100%;
+
+  flex: 0 0 clamp(120px, 13vw, 190px);
+
+  min-width: 0;
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px 16px;
-  box-sizing: border-box;
-  background: white;
+
+  gap: clamp(8px, 1vw, 14px);
+
+  padding:
+    clamp(12px, 1.2vw, 20px)
+    clamp(8px, 1vw, 16px);
+
+  overflow: hidden;
+
+  background: #eeeeee;
 }
 
 .page .sideItem {
   width: 100%;
+  min-width: 0;
+
   padding: 11px 10px;
+
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
+
   background: transparent;
-  color: #172236;
+  color: #122047;
+
   text-align: left;
-  font-size: 17px;
+
+  font-size: clamp(11px, 1.1vw, 17px);
   line-height: 1.3;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+
+  overflow-wrap: anywhere;
 }
 
 .page .sideItem span {
@@ -111,102 +247,151 @@
 }
 
 .page .sideItem:hover {
-  background: #203d73;
-  color: white;
+  background: #046199;
+  color: #eeeeee;
 }
 
 .page .sideItem.active {
-  background: #203d73;
-  color: white;
+  background: #1c3667;
+  color: #eeeeee;
 }
 
 .page .backButton {
   width: 100%;
-  height: 34px;
+  min-width: 0;
+  min-height: 34px;
+
+  flex: 0 0 34px;
+
   margin-top: auto;
+  padding: 6px;
+
   border: none;
-  border-radius: 6px;
-  background: #162953;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
+  border-radius: 10px;
+
+  background: #1c3667;
+  color: #eeeeee;
+
+  font-size: clamp(9px, 0.8vw, 12px);
 }
 
 .page .backButton:hover {
   background: #315a91;
 }
 
+
 /* =========================================================
    MAIN CONTENT
    ========================================================= */
 
 .page .content {
-  flex: 1;
+  width: 0;
+  height: 100%;
+
+  flex: 1 1 0;
+
   min-width: 0;
   min-height: 0;
-  padding: 12px 24px 14px;
-  box-sizing: border-box;
-  overflow: auto;
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: clamp(8px, 1.2vw, 22px);
+
+  overflow: hidden;
+
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
+
+/* =========================================================
+   TOP ACTION BAR
+   ========================================================= */
+
 .page .top {
   width: 100%;
-  min-height: 44px;
+  height: 42px;
+
+  min-width: 0;
+  min-height: 42px;
+  max-height: 42px;
+
+  flex: 0 0 42px;
+
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+
+  gap: clamp(6px, 0.8vw, 12px);
+
   margin-bottom: 10px;
+
+  overflow: hidden;
 }
 
 .page .exportButton {
-  min-width: 180px;
+  min-width: 105px;
+  max-width: 180px;
   height: 38px;
-  padding: 0 22px;
+
+  flex: 0 1 160px;
+
+  padding: 0 clamp(8px, 1vw, 18px);
+
   border: none;
-  border-radius: 22px;
-  background: #203d73;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
+  border-radius: 10px;
+
+  background: #122047;
+  color: #eeeeee;
+
+  font-size: clamp(10px, 0.9vw, 15px);
+
+  white-space: nowrap;
 }
 
 .page .inventory {
+  min-width: 0;
+
   display: flex;
-  gap: 12px;
+  align-items: center;
+
+  gap: clamp(5px, 0.7vw, 10px);
+
   margin-left: auto;
 }
 
 .page .inventoryButton {
+  min-width: 85px;
+  max-width: 170px;
   height: 38px;
-  padding: 0 25px;
+
+  flex: 0 1 auto;
+
+  padding: 0 clamp(8px, 1.2vw, 22px);
+
   border: none;
-  border-radius: 22px;
-  background: #162953;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
+  border-radius: 10px;
+
+  background: #122047;
+  color: #eeeeee;
+
+  font-size: clamp(10px, 0.9vw, 15px);
+
+  white-space: nowrap;
 }
 
 .page .pullOut {
-  padding-left: 18px;
-  padding-right: 18px;
+  padding-left: clamp(8px, 1vw, 18px);
+  padding-right: clamp(8px, 1vw, 18px);
 }
 
-.page .topButton:hover,
-.page .userButton:hover,
-.page .exportButton:hover,
-.page .inventoryButton:hover {
-  background: #315a91;
+.page .exportButton:hover:not(:disabled),
+.page .inventoryButton:hover:not(:disabled) {
+  background: #01a1df;
 }
 
-.page button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
 
 /* =========================================================
    MAIN GRID
@@ -214,87 +399,169 @@
 
 .page .mainGrid {
   width: 100%;
+  height: 0;
+
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  flex: 1 1 0;
+
   display: grid;
-  grid-template-columns: minmax(700px, 1fr) 360px;
-  gap: 18px;
-  align-items: start;
+
+  grid-template-columns:
+    minmax(0, 3fr)
+    minmax(260px, 1fr);
+
+  gap: clamp(8px, 1vw, 16px);
+
+  align-items: stretch;
+
+  overflow: hidden;
 }
+
+
+/* =========================================================
+   LEFT AREA
+   ========================================================= */
 
 .page .leftArea {
   width: 100%;
+  height: 100%;
+
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
 }
 
-.page .rightArea {
-  width: 360px;
-}
 
 /* =========================================================
-   TOP CARDS
+   RIGHT AREA
+   ========================================================= */
+
+.page .rightArea {
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   ADD DATA + EDIT DATA
    ========================================================= */
 
 .page .cards {
   width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  flex: 0 0 clamp(180px, 27vh, 250px);
+
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
-  gap: 16px;
+
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(0, 1.1fr);
+
+  gap: clamp(8px, 1vw, 16px);
+
   margin-bottom: 12px;
+
+  overflow: hidden;
 }
 
 .page .card {
-  height: 265px;
-  padding: 15px 17px;
-  border: 1px solid #222;
-  border-radius: 4px;
-  box-sizing: border-box;
-  background: #d9d9d9;
+  width: 100%;
+  height: 100%;
+
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  padding: clamp(10px, 1.2vw, 18px);
+
+  border: 1px solid #eeeeee;
+  border-radius: 10px;
+
+  background: #eeeeee;
+
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 .page .card h2 {
-  margin: 0 0 15px;
-  font-size: 20px;
+  margin: 0 0 clamp(10px, 1vw, 16px);
+
+  color: #122047;
+
+  font-size: clamp(17px, 1.5vw, 24px);
   font-weight: 700;
 }
 
 .page .card p {
   margin: 8px 0;
-  font-size: 14px;
+
+  color: #122047;
+
+  font-size: clamp(11px, 0.9vw, 14px);
   font-weight: 600;
 }
 
 .page .card input,
 .page .card select {
   width: 100%;
+  min-width: 0;
   height: 32px;
+
   margin-bottom: 8px;
   padding: 0 10px;
-  border: 1px solid #aaa;
+
+  border: 1px solid #122047;
   border-radius: 4px;
-  box-sizing: border-box;
   outline: none;
+
   background: white;
-  font-size: 13px;
+
+  font-size: clamp(11px, 0.8vw, 13px);
 }
 
 .page .card > button {
-  min-width: 110px;
-  height: 32px;
+  min-width: 100px;
+  min-height: 32px;
+
   padding: 0 14px;
+
   border: none;
   border-radius: 4px;
-  background: #162953;
-  color: white;
-  cursor: pointer;
+
+  background: #122047;
+  color: #eeeeee;
+
+  font-size: clamp(10px, 0.8vw, 13px);
 }
 
-.page .card > button:hover {
-  background: #315a91;
+.page .card > button:hover:not(:disabled) {
+  background: #01a1df;
 }
 
 .page .edit {
-  width: auto;
+  width: 100%;
+  min-width: 0;
 }
+
 
 /* =========================================================
    SEARCH RESULTS
@@ -302,30 +569,43 @@
 
 .page .searchResults {
   width: 100%;
+  min-width: 0;
   max-height: 125px;
+
   display: flex;
   flex-direction: column;
+
   gap: 4px;
+
   overflow-y: auto;
+}
+
+.page .searchResults:empty {
+  display: none;
 }
 
 .page .searchResults button {
   width: 100%;
   min-height: 30px;
+
   padding: 5px 8px;
-  border: 1px solid #bbb;
+
+  border: 1px solid #122047;
   border-radius: 3px;
+
   background: white;
-  color: #222;
+  color: #122047;
+
   text-align: left;
+
   font-size: 12px;
-  cursor: pointer;
 }
 
 .page .searchResults button:hover {
-  background: #203d73;
-  color: white;
+  background: #122047;
+  color: #eeeeee;
 }
+
 
 /* =========================================================
    EDIT FORM
@@ -333,112 +613,178 @@
 
 .page .editForm {
   width: 100%;
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 7px;
-  margin-top: 8px;
+
+  margin-top: 2px;
 }
 
 .page .editField {
   width: 100%;
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 3px;
 }
 
 .page .editField label {
-  font-size: 11px;
+  min-width: 0;
+
+  font-size: clamp(10px, 0.75vw, 11px);
   font-weight: 700;
+
   text-transform: capitalize;
+
+  overflow-wrap: anywhere;
 }
 
 .page .editField input {
   width: 100%;
+  min-width: 0;
   height: 28px;
+
   padding: 0 8px;
   margin: 0;
-  border: 1px solid #aaa;
+
+  border: 1px solid #122047;
   border-radius: 3px;
-  box-sizing: border-box;
   outline: none;
+
   background: white;
-  font-size: 12px;
+
+  font-size: clamp(10px, 0.75vw, 12px);
 }
 
 .page .editFormButtons {
   display: flex;
+
   gap: 7px;
+  flex-wrap: wrap;
+
   margin-top: 5px;
 }
 
 .page .editFormButtons button {
   min-height: 29px;
+
   padding: 0 12px;
+
   border: none;
   border-radius: 4px;
-  background: #162953;
-  color: white;
+
+  background: #122047;
+  color: #eeeeee;
+
   font-size: 11px;
-  cursor: pointer;
 }
 
 .page .editFormButtons button:hover {
-  background: #315a91;
+  background: #046199;
 }
 
+
 /* =========================================================
-   WAREHOUSE TABLE
+   WAREHOUSE CONTAINER
    ========================================================= */
 
 .page .table {
   width: 100%;
-  height: 480px;
-  overflow: hidden;
-  border: 1px solid #222;
-  border-radius: 4px;
-  box-sizing: border-box;
-  background: white;
+  height: 0;
+
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  flex: 1 1 0;
+
   display: flex;
   flex-direction: column;
+
+  overflow: hidden;
+
+  border: 1px solid #122047;
+  border-radius: 10px;
+
+  background: #eeeeee;
 }
 
 .page .tableTitle {
-  height: 65px;
-  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+
+  min-height: clamp(48px, 5vh, 60px);
+
+  flex: 0 0 auto;
+
   display: flex;
   align-items: center;
-  padding: 0 25px;
+
+  padding: 8px clamp(14px, 2vw, 25px);
+
   border-bottom: 2px solid #222;
-  box-sizing: border-box;
-  font-size: 25px;
+
+  font-size: clamp(20px, 2vw, 27px);
   font-weight: 700;
 }
 
+
+/* =========================================================
+   TABLE BODY
+   ========================================================= */
+
 .page .tableBody {
   width: 100%;
-  flex: 1;
-  overflow: auto;
+  height: 0;
+
+  min-width: 0;
+  min-height: 0;
+
+  flex: 1 1 0;
+
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
+
+/* =========================================================
+   TABLE ROWS
+   ========================================================= */
+
 .page .tableRow {
-  min-width: max-content;
+  width: max-content;
+  min-width: 100%;
   min-height: 42px;
+
   display: grid;
+
   grid-auto-flow: column;
-  grid-auto-columns: minmax(135px, 1fr);
+  grid-auto-columns: minmax(125px, 1fr);
+
   align-items: stretch;
+
   border-bottom: 1px solid #aaa;
 }
 
 .page .tableRow > span {
-  min-width: 135px;
+  min-width: 125px;
+
   display: flex;
   align-items: center;
+
   padding: 7px 9px;
+
   border-right: 1px solid #ccc;
-  box-sizing: border-box;
+
   overflow-wrap: anywhere;
-  font-size: 11px;
+  word-break: break-word;
+
+  font-size: clamp(9px, 0.7vw, 11px);
 }
 
 .page .tableRow > span:last-child {
@@ -447,115 +793,147 @@
 
 .page .tableHeaderRow {
   position: sticky;
+
   top: 0;
   z-index: 2;
+
   min-height: 42px;
+
   background: #d9d9d9;
+
   font-weight: 700;
 }
 
 .page .tableRow button {
   min-height: 25px;
+
   padding: 3px 8px;
+
   border: none;
   border-radius: 3px;
+
   background: #162953;
   color: white;
-  font-size: 10px;
-  cursor: pointer;
+
+  font-size: clamp(9px, 0.65vw, 10px);
+
+  white-space: nowrap;
 }
 
 .page .tableRow button:hover {
   background: #315a91;
 }
 
-/* =========================================================
-   BOTTOM BUTTONS
-   ========================================================= */
-
-.page .bottomButtons {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.page .bottomButtons button {
-  min-width: 145px;
-  height: 32px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 4px;
-  background: white;
-  color: #222;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.page .bottomButtons button:hover:not(:disabled) {
-  background: #203d73;
-  color: white;
-}
 
 /* =========================================================
-   RIGHT CONTROLS / SHELVES
+   RIGHT CONTROLS
    ========================================================= */
 
 .page .rightControls {
   width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  flex: 0 0 auto;
+
   display: flex;
   flex-direction: column;
-  gap: 8px;
+
+  gap: 10px;
+
   margin-bottom: 8px;
+
+  overflow: visible;
 }
 
-.page .row {
+
+/* =========================================================
+   RIGHT CONTROL ROWS
+
+   Search takes the remaining space.
+   Both buttons get the exact same width.
+   ========================================================= */
+
+.page .rightArea .row {
   width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    76px
+    76px;
+
+  gap: 8px;
+
+  align-items: center;
 }
+
+
+/* =========================================================
+   SHELF SEARCH
+   ========================================================= */
 
 .page .shelfSearchWrapper {
   position: relative;
-  width: 175px;
-  flex-shrink: 0;
+
+  width: 100%;
+  min-width: 0;
 }
 
 .page .smallInput {
-  width: 175px;
-  height: 32px;
-  padding: 0 10px;
+  width: 100%;
+  min-width: 0;
+
+  height: 40px;
+
+  padding: 0 13px;
+
   border: none;
-  border-radius: 5px;
-  box-sizing: border-box;
+  border-radius: 6px;
   outline: none;
+
   background: white;
-  font-size: 12px;
+  color: #222;
+
+  font-size: 13px;
 }
 
-.page .smallButton {
-  height: 32px;
-  padding: 0 10px;
-  border: none;
-  border-radius: 5px;
-  background: white;
-  color: black;
-  font-size: 10px;
-  cursor: pointer;
+.page .smallInput::placeholder {
+  color: #666;
 }
 
+
+/* =========================================================
+   SHELF BUTTONS
+
+   THIS IS THE ONLY MAIN RULE FOR THE FOUR BUTTONS.
+   Full / Available / Add / Remove
+   ========================================================= */
+
+.page .smallButton,
 .page .actionButton {
-  height: 32px;
-  padding: 0 12px;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
+
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
+
   background: white;
   color: black;
-  font-size: 12px;
-  cursor: pointer;
+  font-size: 9px;
+  white-space: nowrap;
 }
 
 .page .smallButton:hover,
@@ -564,35 +942,54 @@
   color: white;
 }
 
+/* =========================================================
+   SHELF SUGGESTIONS
+   ========================================================= */
+
 .page .shelfSuggestions {
   position: absolute;
-  top: 36px;
+
+  top: calc(100% + 4px);
   left: 0;
+  right: 0;
+
   z-index: 30;
-  width: 250px;
+
+  width: 100%;
+  min-width: 0;
   max-height: 190px;
+
   overflow-y: auto;
+
   border: 1px solid #aaa;
   border-radius: 4px;
+
   background: white;
+
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .page .shelfSuggestion {
   width: 100%;
   min-height: 34px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   gap: 8px;
+
   padding: 6px 9px;
+
   border: none;
   border-bottom: 1px solid #ddd;
+
   background: white;
   color: #222;
+
   text-align: left;
+
   font-size: 11px;
-  cursor: pointer;
 }
 
 .page .shelfSuggestion:hover {
@@ -602,66 +999,94 @@
 
 .page .shelfNoResult {
   padding: 10px;
-  font-size: 11px;
+
   color: #555;
+
+  font-size: 11px;
 }
 
 .page .shelfError {
   padding: 6px;
+
   border-radius: 4px;
+
   background: white;
   color: #a40000;
+
   font-size: 11px;
 }
 
+
 /* =========================================================
-   STAGE CARD
+   STAGE SETS
    ========================================================= */
 
 .page .stageCard {
   width: 100%;
-  height: 680px;
-  padding: 16px 20px;
+  height: 0;
+
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+
+  flex: 1 1 0;
+
+  padding: clamp(12px, 1.3vw, 20px);
+
   border: 1px solid #222;
   border-radius: 4px;
-  box-sizing: border-box;
-  overflow-y: auto;
+
   background: #d9d9d9;
+
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .page .stageCard h2 {
-  margin: 0 0 16px;
-  font-size: 23px;
+  margin: 0 0 clamp(12px, 1.2vw, 18px);
+
+  font-size: clamp(19px, 1.7vw, 26px);
+  font-weight: 700;
 }
 
 .page .stageCard h3 {
-  margin: 16px 0 8px;
-  font-size: 15px;
+  margin: clamp(12px, 1.2vw, 18px) 0 8px;
+
+  font-size: clamp(12px, 1vw, 16px);
 }
 
 .page .stageItem {
+  width: 100%;
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   margin-bottom: 8px;
 }
 
 .page .stageItem label {
   margin-bottom: 4px;
-  font-size: 14px;
+
+  font-size: clamp(10px, 0.8vw, 14px);
   font-weight: 700;
 }
 
 .page .stageItem input,
 .page .stageCard > input {
   width: 100%;
+  min-width: 0;
   height: 30px;
+
   padding: 0 9px;
+
   border: 1px solid #aaa;
   border-radius: 3px;
-  box-sizing: border-box;
   outline: none;
+
   background: white;
-  font-size: 11px;
+
+  font-size: clamp(9px, 0.7vw, 11px);
 }
 
 .page .stageItem input::placeholder,
@@ -671,30 +1096,45 @@
 
 .page .stageCard .searchResults {
   max-height: 120px;
+
   margin-top: 6px;
 }
 
+
+/* =========================================================
+   STAGED ITEMS
+   ========================================================= */
+
 .page .stagedList {
   width: 100%;
+  min-width: 0;
   max-height: 135px;
+
   display: flex;
   flex-direction: column;
+
   gap: 4px;
+
   margin-top: 7px;
+
   overflow-y: auto;
 }
 
 .page .stagedList button {
   width: 100%;
   min-height: 30px;
+
   padding: 5px 8px;
+
   border: 1px solid #aaa;
   border-radius: 3px;
+
   background: white;
   color: #222;
+
   text-align: left;
+
   font-size: 11px;
-  cursor: pointer;
 }
 
 .page .stagedList button:hover {
@@ -705,107 +1145,209 @@
 .page .stageCard .editForm {
   padding-top: 8px;
   margin-top: 8px;
+
   border-top: 1px solid #aaa;
 }
 
+
+/* =========================================================
+   COMMIT BUTTON
+   ========================================================= */
+
 .page .commitButton {
   width: 100%;
+  min-width: 0;
   min-height: 35px;
+
   margin-top: 14px;
+
   border: none;
   border-radius: 5px;
+
   background: #162953;
   color: white;
-  font-size: 13px;
+
+  font-size: clamp(10px, 0.8vw, 13px);
   font-weight: 700;
-  cursor: pointer;
 }
 
 .page .commitButton:hover:not(:disabled) {
   background: #315a91;
 }
 
+
 /* =========================================================
-   LOG INVENTORY POPUP
+   IMPORT CSV + CLEAR STAGE
+
+   These stay naturally UNDER Stage Sets.
+   No absolute positioning.
+   ========================================================= */
+
+.page .rightArea .bottomButtons {
+  position: static;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+
+  flex: 0 0 36px;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 8px;
+
+  margin: 8px 0 0;
+  padding: 0;
+
+  overflow: hidden;
+}
+
+.page .rightArea .bottomButtons button {
+  position: static;
+
+  width: 100%;
+  height: 36px;
+
+  min-width: 0;
+  max-width: none;
+
+  margin: 0;
+  padding: 0 8px;
+
+  border: none;
+  border-radius: 5px;
+
+  background: white;
+  color: #222;
+
+  font-size: clamp(9px, 0.8vw, 12px);
+
+  white-space: nowrap;
+}
+
+.page .rightArea .bottomButtons button:hover:not(:disabled) {
+  background: #203d73;
+  color: white;
+}
+
+.page .rightArea .bottomButtons button:disabled {
+  background: #b8c1ca;
+  color: #75808a;
+
+  opacity: 0.65;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   POPUP
    ========================================================= */
 
 .page .popupOverlay {
   position: fixed;
+
   inset: 0;
   z-index: 1000;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   padding: 20px;
-  box-sizing: border-box;
+
   background: rgba(0, 0, 0, 0.5);
 }
 
 .page .popupBox {
-  width: 520px;
-  max-width: 95vw;
+  width: min(520px, 95vw);
   max-height: 85vh;
+
   padding: 22px;
+
   border-radius: 8px;
-  box-sizing: border-box;
+
   overflow-y: auto;
+
   background: #d9d9d9;
+
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .page .popupBox h2 {
   margin: 0 0 18px;
+
   color: #172236;
+
   font-size: 22px;
 }
 
 .page .popupField {
   width: 100%;
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 4px;
+
   margin-bottom: 10px;
 }
 
 .page .popupField label {
   font-size: 12px;
   font-weight: 700;
+
   text-transform: capitalize;
 }
 
 .page .popupField input {
   width: 100%;
+  min-width: 0;
   height: 34px;
+
   padding: 0 10px;
+
   border: 1px solid #aaa;
   border-radius: 4px;
-  box-sizing: border-box;
   outline: none;
+
   background: white;
+
   font-size: 13px;
 }
 
 .page .popupButtons {
   display: flex;
   justify-content: flex-end;
+
   gap: 10px;
+  flex-wrap: wrap;
+
   margin-top: 18px;
 }
 
 .page .popupButtons button {
   min-width: 100px;
   height: 34px;
+
   border: none;
   border-radius: 4px;
+
   background: #162953;
   color: white;
+
   font-size: 12px;
-  cursor: pointer;
 }
 
 .page .popupButtons button:hover {
   background: #315a91;
 }
+
 
 /* =========================================================
    SCROLLBARS
@@ -833,56 +1375,708 @@
   border-radius: 5px;
 }
 
+.page .tableBody::-webkit-scrollbar-thumb:hover,
+.page .card::-webkit-scrollbar-thumb:hover,
+.page .stageCard::-webkit-scrollbar-thumb:hover,
+.page .searchResults::-webkit-scrollbar-thumb:hover,
+.page .stagedList::-webkit-scrollbar-thumb:hover,
+.page .shelfSuggestions::-webkit-scrollbar-thumb:hover,
+.page .popupBox::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+
 /* =========================================================
-   RESPONSIVE
+   MEDIUM DESKTOP
    ========================================================= */
 
-@media (max-width: 1500px) {
+@media (max-width: 1400px) {
   .page .mainGrid {
-    grid-template-columns: minmax(620px, 1fr) 320px;
+    grid-template-columns:
+      minmax(0, 2.8fr)
+      minmax(250px, 1fr);
+
+    gap: 12px;
   }
 
-  .page .rightArea {
-    width: 320px;
+  .page .cards {
+    grid-template-columns:
+      minmax(0, 0.9fr)
+      minmax(0, 1.1fr);
+
+    gap: 12px;
   }
 
   .page .card {
-    height: 245px;
-  }
-
-  .page .table {
-    height: 450px;
+    padding: 14px;
   }
 
   .page .stageCard {
-    height: 560px;
+    padding: 14px;
   }
 
-  .page .shelfSearchWrapper,
-  .page .smallInput {
+  .page .tableRow {
+    grid-auto-columns: minmax(120px, 1fr);
+  }
+
+  .page .tableRow > span {
+    min-width: 120px;
+  }
+}
+
+
+/* =========================================================
+   LAPTOP
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .page .body .sidebar {
     width: 145px;
+    flex-basis: 145px;
   }
 
-  .page .smallButton {
-    padding: 0 7px;
+  .page .content {
+    padding: 10px;
+  }
+
+  .page .mainGrid {
+    grid-template-columns:
+      minmax(0, 2.5fr)
+      minmax(240px, 1fr);
+
+    gap: 10px;
+  }
+
+  .page .cards {
+    flex-basis: clamp(175px, 25vh, 230px);
+
+    gap: 10px;
+  }
+
+  .page .card {
+    padding: 12px;
+  }
+
+  .page .card h2 {
+    font-size: clamp(17px, 1.5vw, 21px);
+  }
+
+  .page .stageCard {
+    padding: 12px;
+  }
+
+  /* Search + two equal buttons */
+  .page .rightArea .row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      72px
+      72px;
+
+    gap: 6px;
+  }
+
+  /* ALL FOUR remain equal */
+  .page .smallButton,
+  .page .actionButton {
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+
     font-size: 9px;
   }
 }
 
-@media (max-width: 1200px) {
+
+/* =========================================================
+   SMALL LAPTOP
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .page .body .sidebar {
+    width: 125px;
+    flex-basis: 125px;
+
+    padding: 10px 7px;
+  }
+
+  .page .sideItem {
+    padding: 8px 6px;
+
+    font-size: 11px;
+  }
+
   .page .content {
-    overflow: auto;
+    padding: 8px;
   }
 
   .page .mainGrid {
-    min-width: 950px;
+    grid-template-columns:
+      minmax(0, 2.3fr)
+      minmax(225px, 0.9fr);
+
+    gap: 8px;
   }
 
+  .page .cards {
+    flex-basis: clamp(170px, 24vh, 220px);
+
+    gap: 8px;
+  }
+
+  .page .card {
+    padding: 10px;
+  }
+
+  .page .card h2 {
+    font-size: 18px;
+  }
+
+  .page .tableTitle {
+    font-size: 21px;
+  }
+
+  .page .stageCard {
+    padding: 10px;
+  }
+
+  .page .stageCard h2 {
+    font-size: 20px;
+  }
+
+  .page .stageCard h3 {
+    font-size: 12px;
+  }
+
+  .page .rightArea .row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      68px
+      68px;
+
+    gap: 5px;
+  }
+
+  .page .smallButton,
+  .page .actionButton {
+    width: 68px;
+    min-width: 68px;
+    max-width: 68px;
+
+    font-size: 9px;
+  }
+
+  .page .tableRow {
+    grid-auto-columns: minmax(115px, 1fr);
+  }
+
+  .page .tableRow > span {
+    min-width: 115px;
+  }
+}
+
+/* =========================================================
+   NARROW WINDOW
+   ========================================================= */
+
+@media (max-width: 800px) {
   .page .header {
-    min-width: 1000px;
+    gap: 8px;
+    padding: 7px 8px;
   }
 
-  .page .search {
-    width: 300px;
+  .page .logo {
+    width: 165px;
   }
+
+  .page .header .search {
+    min-width: 130px;
+    padding: 0 12px;
+  }
+
+  .page .body .sidebar {
+    width: 110px;
+    flex-basis: 110px;
+    padding: 9px 6px;
+  }
+
+  .page .sideItem {
+    font-size: 10px;
+  }
+
+  .page .content {
+    padding: 6px;
+  }
+
+  .page .top {
+    gap: 5px;
+  }
+
+  .page .exportButton,
+  .page .inventoryButton {
+    min-width: 75px;
+
+    padding-left: 7px;
+    padding-right: 7px;
+
+    font-size: 9px;
+  }
+
+  .page .mainGrid {
+    grid-template-columns:
+      minmax(0, 2fr)
+      minmax(210px, 0.9fr);
+
+    gap: 6px;
+  }
+
+  .page .cards {
+    flex-basis: clamp(165px, 23vh, 210px);
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    gap: 6px;
+  }
+
+  .page .card {
+    padding: 8px;
+  }
+
+  .page .card h2 {
+    font-size: 16px;
+  }
+
+  /* Search + two equal shelf buttons */
+  .page .rightArea .row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      62px
+      62px;
+
+    gap: 4px;
+  }
+
+  .page .shelfSearchWrapper {
+    grid-column: auto;
+  }
+
+  .page .smallInput {
+    height: 36px;
+
+    padding: 0 9px;
+
+    font-size: 10px;
+  }
+
+  /* Full / Available / Add / Remove */
+  .page .smallButton,
+  .page .actionButton {
+    width: 62px;
+    min-width: 62px;
+    max-width: 62px;
+
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+
+    padding: 0 3px;
+
+    font-size: 8px;
+  }
+
+  .page .stageCard {
+    padding: 9px;
+  }
+
+  .page .stageCard h2 {
+    font-size: 18px;
+  }
+
+  .page .tableRow {
+    grid-auto-columns: minmax(110px, 1fr);
+  }
+
+  .page .tableRow > span {
+    min-width: 110px;
+
+    padding: 6px;
+
+    font-size: 9px;
+  }
+}
+
+
+/* =========================================================
+   VERY NARROW
+   ========================================================= */
+
+@media (max-width: 650px) {
+  .page .header {
+    height: 58px;
+
+    min-height: 58px;
+    max-height: 58px;
+
+    flex-basis: 58px;
+  }
+
+  .page .logo {
+    width: 135px;
+  }
+
+  .page .header .search {
+    min-width: 100px;
+    height: 36px;
+
+    font-size: 10px;
+  }
+
+  .page .body .sidebar {
+    width: 95px;
+    flex-basis: 95px;
+  }
+
+  .page .sideItem {
+    padding: 7px 5px;
+
+    font-size: 9px;
+  }
+
+  .page .backButton {
+    font-size: 9px;
+  }
+
+  .page .mainGrid {
+    grid-template-columns:
+      minmax(0, 1.8fr)
+      minmax(195px, 0.85fr);
+
+    gap: 5px;
+  }
+
+  .page .cards {
+    flex-basis: clamp(155px, 22vh, 200px);
+
+    gap: 5px;
+  }
+
+  .page .card {
+    padding: 7px;
+  }
+
+  .page .card h2 {
+    font-size: 15px;
+  }
+
+  .page .tableTitle {
+    min-height: 45px;
+
+    padding: 7px 10px;
+
+    font-size: 18px;
+  }
+
+  /* Search + two equal shelf buttons */
+  .page .rightArea .row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      56px
+      56px;
+
+    gap: 4px;
+  }
+
+  .page .smallInput {
+    height: 34px;
+
+    padding: 0 8px;
+
+    font-size: 9px;
+  }
+
+  .page .smallButton,
+  .page .actionButton {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+
+    padding: 0 2px;
+
+    font-size: 7.5px;
+  }
+
+  .page .stageCard {
+    padding: 8px;
+  }
+
+  .page .stageCard h2 {
+    font-size: 17px;
+  }
+
+  .page .stageCard h3 {
+    font-size: 11px;
+  }
+
+  .page .rightArea .bottomButtons button {
+    font-size: 9px;
+  }
+}
+
+
+/* =========================================================
+   EXTREMELY NARROW
+   ========================================================= */
+
+@media (max-width: 520px) {
+  .page .logo {
+    width: 110px;
+  }
+
+  .page .header .search {
+    min-width: 80px;
+
+    padding: 0 9px;
+  }
+
+  .page .userButton {
+    min-width: 70px;
+    width: 70px;
+
+    font-size: 9px;
+  }
+
+  .page .body .sidebar {
+    width: 80px;
+    flex-basis: 80px;
+
+    padding: 7px 4px;
+  }
+
+  .page .sideItem {
+    padding: 6px 4px;
+
+    font-size: 8px;
+  }
+
+  .page .content {
+    padding: 5px;
+  }
+
+  .page .mainGrid {
+    grid-template-columns:
+      minmax(0, 1.7fr)
+      minmax(180px, 0.8fr);
+
+    gap: 4px;
+  }
+
+  .page .cards {
+    flex-basis: clamp(150px, 21vh, 190px);
+
+    gap: 4px;
+
+    margin-bottom: 6px;
+  }
+
+  .page .card {
+    padding: 6px;
+  }
+
+  .page .card h2 {
+    font-size: 14px;
+  }
+
+  /* Search + two equal shelf buttons */
+  .page .rightArea .row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      50px
+      50px;
+
+    gap: 3px;
+  }
+
+  .page .smallInput {
+    height: 32px;
+
+    padding: 0 6px;
+
+    font-size: 8px;
+  }
+
+  /* Full / Available / Add / Remove */
+  .page .smallButton,
+  .page .actionButton {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+
+    padding: 0 1px;
+
+    font-size: 7px;
+  }
+
+  .page .stageCard {
+    padding: 7px;
+  }
+
+  .page .stageCard h2 {
+    font-size: 16px;
+  }
+
+  .page .tableRow {
+    grid-auto-columns: minmax(100px, 1fr);
+  }
+
+  .page .tableRow > span {
+    min-width: 100px;
+
+    font-size: 8px;
+  }
+
+  .page .rightArea .bottomButtons {
+    min-height: 32px;
+    flex-basis: 32px;
+
+    gap: 3px;
+
+    margin-top: 5px;
+  }
+
+  .page .rightArea .bottomButtons button {
+    height: 32px;
+
+    padding: 0 2px;
+
+    font-size: 8px;
+  }
+}
+
+html,
+body,
+#root {
+  overflow: hidden !important;
+}
+
+.page {
+  overflow: hidden !important;
+}
+
+.page .body {
+  overflow: hidden !important;
+}
+
+.page .content {
+  overflow: hidden !important;
+}
+
+.page .mainGrid {
+  overflow: hidden !important;
+}
+
+.page .leftArea,
+.page .rightArea {
+  overflow: hidden !important;
+}
+
+
+/* =========================================================
+   INTERNAL SCROLLING ONLY
+   ========================================================= */
+
+.page .card {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.page .table {
+  overflow: hidden !important;
+}
+
+.page .tableBody {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+.page .stageCard {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* =========================================================
+   IMPORT CSV + CLEAR STAGE
+   ========================================================= */
+
+.page .bottomButtons {
+  position: static;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+
+  flex: 0 0 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  gap: 12px;
+
+  margin: 8px 0 0;
+  padding: 0;
+
+  overflow: hidden;
+}
+
+.page .bottomButtons button {
+  position: static;
+
+  width: 155px;
+  min-width: 155px;
+  max-width: 155px;
+
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+
+  margin: 0;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 6px;
+
+  background: white;
+  color: #122047;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.page .bottomButtons button:hover:not(:disabled) {
+  background: #203d73;
+  color: white;
+}
+
+.page .bottomButtons button:disabled {
+  background: #b8c1ca;
+  color: #75808a;
+
+  opacity: 0.65;
+
+  cursor: not-allowed;
 }

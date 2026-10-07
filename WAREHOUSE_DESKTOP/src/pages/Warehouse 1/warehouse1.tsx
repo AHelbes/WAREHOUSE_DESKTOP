@@ -1230,31 +1230,6 @@ async function handleRemoveShelf() {
                   )}
                 </div>
               </div>
-
-              <div className="bottomButtons">
-                {/*IMPORT CSV FILE BUTTON*/}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importing}
-                >
-                  {importing ? "Importing file..." : "Import CSV File"}
-                </button>
-                
-                <input
-                type="file"
-                accept=".csv"
-                ref={fileInputRef}
-                onChange={handleFileSelected}
-                style={{ display: "none" }}
-                />
-
-                <button
-                  onClick={handleClearStage}
-                  disabled={stagingRows.length === 0}
-                >
-                  Clear Stage
-                </button>
-              </div>
             </div>
 
             <div className="rightArea">
@@ -1431,6 +1406,30 @@ async function handleRemoveShelf() {
                     Commit All ({stagingRows.length})
                   </button>
                 
+              </div>
+              <div className="bottomButtons">
+                {/*IMPORT CSV FILE BUTTON*/}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                >
+                  {importing ? "Importing file..." : "Import CSV File"}
+                </button>
+                
+                <input
+                type="file"
+                accept=".csv"
+                ref={fileInputRef}
+                onChange={handleFileSelected}
+                style={{ display: "none" }}
+                />
+
+                <button
+                  onClick={handleClearStage}
+                  disabled={stagingRows.length === 0}
+                >
+                  Clear Stage
+                </button>
               </div>
             </div>
           </div>
