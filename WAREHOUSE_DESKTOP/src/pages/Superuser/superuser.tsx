@@ -932,8 +932,8 @@ for (let i = 0; i < monthlyRows.length; i++) {
                         <small>
                           {user.email}
                           {user.role === "superuser"
-                            ? "Superuser"
-                            : "Regular User"}
+                            ? " | Superuser"
+                            : " | Regular User"}
                         </small>
 
                       </div>
