@@ -1363,8 +1363,6 @@ function Warehouse2({
 
               {/* MAIN TABLE */}
               <div className="table">
-                <div className="tableTitle">Warehouse</div>
-
                 <div className="tableBody">
                   {loading && (
                     <div className="tableRow">Loading...</div>

@@ -1199,10 +1199,6 @@ async function handleRemoveShelf() {
               </div>
 
               <div className="table">
-                <div className="tableTitle">
-                  Warehouse
-                </div>
-
                 {/*MAIN TABLE AREA
                   LOADING SUPABASE AND DISPLAYING ACTIVE DATA
                 */}

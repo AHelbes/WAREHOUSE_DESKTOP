@@ -859,10 +859,6 @@ for (let i = 0; i < monthlyRows.length; i++) {
               Export CSV
             </button>
 
-            <button className="pullButton">
-              Pull Out
-            </button>
-
           </div>
 
           <div className="superGrid">
