@@ -1379,26 +1379,26 @@ function Warehouse2({
                   {!loading && !error && (
                     <>
                       <div className="tableRow tableHeaderRow">
-                        {columns.map((column) => (
-                          <span key={column}>{column}</span>
-                        ))}
+                        {columns
+                          .filter((col) => col !== "id")
+                          .map((col) => (
+                            <span key={col}>{col}</span>
+                          ))}
 
                         <span>QR</span>
                       </div>
 
                       {filteredRows.map((row) => (
                         <div className="tableRow" key={row.id}>
-                          {columns.map((column) => (
-                            <span key={column}>
-                              {String(row[column] ?? "")}
-                            </span>
-                          ))}
+                          {columns
+                            .filter((col) => col !== "id")
+                            .map((col) => (
+                              <span key={col}>{String(row[col] ?? "")}</span>
+                            ))}
 
                           <span>
                             <button
-                              onClick={() =>
-                                handleGenerateQRCode(row)
-                              }
+                              onClick={() => handleGenerateQRCode(row)}
                             >
                               Generate QR
                             </button>

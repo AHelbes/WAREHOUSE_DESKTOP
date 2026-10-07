@@ -1213,18 +1213,22 @@ async function handleRemoveShelf() {
                   {!loading && !error && (
                     <>
                       <div className="tableRow tableHeaderRow">
-                        {columns.map((col) => (
-                          <span key={col}>{col}</span>
-                        ))}
+                        {columns
+                          .filter((col) => col !== "id")
+                          .map((col) => (
+                            <span key={col}>{col}</span>
+                          ))}
 
                         <span>QR</span>
                       </div>
 
                       {filteredRows.map((row) => (
                         <div className="tableRow" key={row.id}>
-                          {columns.map((col) => (
-                            <span key={col}>{String(row[col] ?? "")}</span>
-                          ))}
+                          {columns
+                            .filter((col) => col !== "id")
+                            .map((col) => (
+                              <span key={col}>{String(row[col] ?? "")}</span>
+                            ))}
 
                           <span>
                             <button
