@@ -237,16 +237,6 @@ async function handleReplaceDuplicate(index: number) {
 
   if (!duplicate) return;
 
-    if (duplicate.conflictType === "serial_conflict") {
-      alert(
-    `Cannot automatically replace ${duplicate.imported.hostname || "this unit"}.\n\n` +
-    `That hostname does not currently exist, but its serial number belongs to another existing unit.\n\n` +
-    `Serial currently belongs to: ${duplicate.existing.hostname || "-"}\n\n` +
-    `Please correct the CSV data or keep the existing unit.`
-    );
-    return;
-  }
-
   const existingUnit = duplicate.existing;
   const importedUnit = duplicate.imported;
 
@@ -267,6 +257,14 @@ async function handleReplaceDuplicate(index: number) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", existingUnit.id);
+
+    console.log("Replacing:", {
+  existingHostname: existingUnit.hostname,
+  importedHostname: importedUnit.hostname,
+  serialNumber: importedUnit.serial_number,
+});
+
+console.log("Supabase update error:", error);
 
   if (error) {
     alert(`Could not replace unit: ${error.message}`);
@@ -297,25 +295,16 @@ async function handleReplaceDuplicate(index: number) {
 async function handleReplaceAllDuplicates() {
   if (duplicateRows.length === 0) return;
 
-  const conflict = duplicateRows.find(
-    (duplicate) =>
-      duplicate.conflictType === "serial_conflict"
-  );
-
-  if (conflict) {
-  alert(
-    `Replace All cannot continue.\n\n` +
-    `${conflict.imported.hostname || "One imported unit"} uses a serial number that belongs to another existing unit.\n\n` +
-    `Keep or resolve that unit first, then try Replace All again.`
-  );
-  return;
-}
-
   const confirmed = window.confirm(
-    `Replace all ${duplicateRows.length} existing unit(s) with the imported CSV data?`
+    `Replace all ${duplicateRows.length} existing unit(s)?\n\n` +
+    "Existing records will be matched by serial number first, " +
+    "then by hostname.\n\n" +
+    "The imported CSV values will overwrite the matching records."
   );
 
   if (!confirmed) return;
+
+  let replacedCount = 0;
 
   for (const duplicate of duplicateRows) {
     const existingUnit = duplicate.existing;
@@ -341,22 +330,23 @@ async function handleReplaceAllDuplicates() {
 
     if (error) {
       alert(
-        `Could not replace ${
-          existingUnit.hostname ||
-          existingUnit.serial_number ||
-          existingUnit.id
-        }: ${error.message}`
+        `Could not replace ${importedUnit.hostname}: ${error.message}\n\n` +
+        `${replacedCount} unit(s) were already replaced.`
       );
+
+      await fetchData();
       return;
     }
 
     await logUserActivity(
       "REPLACED FROM CSV",
-      existingUnit.hostname ||
-        existingUnit.serial_number ||
+      importedUnit.hostname ||
+        importedUnit.serial_number ||
         existingUnit.id,
-      "Existing Warehouse 1 unit was replaced with data from CSV import."
+      `Updated existing laptop ${existingUnit.hostname} using CSV data.`
     );
+
+    replacedCount++;
   }
 
   await fetchData();
@@ -364,7 +354,7 @@ async function handleReplaceAllDuplicates() {
   setDuplicateRows([]);
   setShowDuplicatePopup(false);
 
-  alert("All duplicate units were replaced successfully.");
+  alert(`${replacedCount} existing unit(s) replaced successfully.`);
 }
 
   /*
@@ -1458,7 +1448,6 @@ async function handleRemoveShelf() {
       <div className="body">
         <aside className="sidebar">
           <button className="sideItem active">
-            Warehouse 1:
             <span>Laptops</span>
           </button>
 
@@ -1466,7 +1455,6 @@ async function handleRemoveShelf() {
             className="sideItem"
             onClick={onWarehouse2}
           >
-            <span>Warehouse 2:</span>
             <span>Computer Equipment</span>
           </button>
 
@@ -1474,7 +1462,6 @@ async function handleRemoveShelf() {
             className="sideItem"
             onClick={onWarehouse3}
           >
-            <span>Warehouse 3:</span>
             <span>Yubikeys</span>
           </button>
 
@@ -1557,7 +1544,6 @@ async function handleRemoveShelf() {
                   >
                     <option value="text">Text</option>
                     <option value="int">Number</option>
-                    <option value="boolean">Boolean</option>
                     <option value="timestamptz">Date</option>
                   </select>
 

@@ -1075,13 +1075,13 @@ for (let i = 0; i < monthlyRows.length; i++) {
 
                     </div>
                     
-                    <div className="userActions">
+                    {/*<div className="userActions">
                       <button
                         onClick={handleResetPassword}
                       >
                         Reset Password
                       </button>
-                    </div>
+                    </div>*/}
 
                       {/*
                       <button
