@@ -37,6 +37,8 @@ function Warehouse1({
   /*Memory boxes for searching and staging a unit*/
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
   const [unitSearchResults, setUnitSearchResults] = useState<Record<string, any>[]>([]);
+  const [selectedStageIds, setSelectedStageIds] = useState<string[]>([]);
+  const [bulkStaging, setBulkStaging] = useState(false);
 
   /*nakakaiyak na hahahaha tama na po. Memory boxes for the combined (laptop/ce) staged list and editing a staged item*/
   const [stagingRows, setStagingRows] = useState<Record<string, any>[]>([]);
@@ -47,6 +49,8 @@ function Warehouse1({
   /*Memory boxes for actively loading data. columns for hostnames/status, rows for laptop unit, loading always starts true and lets user know the program is still loading, error starts null*/
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, any>[]>([]);
+  const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>([]);
+  const [stagingInventory, setStagingInventory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -392,45 +396,144 @@ async function handleReplaceAllDuplicates() {
   /* 
   Function to stage a unit (laptop/ce) from the search function
   */
-  async function handleStageUnit(row: Record<string, any>) {
-    const { id, created_at, updated_at, created_by, updated_by, _sourceTable, ...rest } = row;
+  function toggleStageSelection(id: string) {
+  setSelectedStageIds((current) =>
+    current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]
+  );
+}
 
-    const { error } = await supabase
-      .from("staging_import")
-      .insert({ ...rest, source_unit_id: id });
+function toggleSelectAll() {
+  const availableIds = unitSearchResults
+    .filter(
+      (row) =>
+        !stagingRows.some(
+          (staged) => staged.source_unit_id === row.id
+        )
+    )
+    .map((row) => String(row.id));
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setUnitSearchTerm("");
-      setUnitSearchResults([]);
-      fetchStaging();
-    }
+  const allSelected = availableIds.every((id) =>
+    selectedStageIds.includes(id)
+  );
+
+  setSelectedStageIds((current) =>
+    allSelected
+      ? current.filter((id) => !availableIds.includes(id))
+      : [...new Set([...current, ...availableIds])]
+  );
+}
+
+async function handleStageSelected() {
+  if (bulkStaging || selectedStageIds.length === 0) return;
+
+  const selectedUnits = unitSearchResults.filter((row) =>
+    selectedStageIds.includes(String(row.id))
+  );
+
+  if (selectedUnits.length === 0) {
+    alert("No units selected.");
+    return;
   }
+
+  setBulkStaging(true);
+
+  try {
+    const { data: existingStaged, error: checkError } =
+      await supabase
+        .from("staging_import")
+        .select("source_unit_id")
+        .in(
+          "source_unit_id",
+          selectedUnits.map((row) => row.id)
+        );
+
+    if (checkError) throw checkError;
+
+    const existingIds = new Set(
+      (existingStaged ?? []).map((row) =>
+        String(row.source_unit_id)
+      )
+    );
+
+    const unitsToStage = selectedUnits.filter(
+      (row) => !existingIds.has(String(row.id))
+    );
+
+    if (unitsToStage.length === 0) {
+      alert("All selected units are already staged.");
+      await fetchStaging();
+      return;
+    }
+
+    const payload = unitsToStage.map((row) => {
+      const {
+        id,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by,
+        _sourceTable,
+        ...rest
+      } = row;
+
+      return {
+        ...rest,
+        source_unit_id: id,
+      };
+    });
+
+    const { error: insertError } = await supabase
+      .from("staging_import")
+      .insert(payload);
+
+    if (insertError) throw insertError;
+
+    await fetchStaging();
+
+    setSelectedStageIds([]);
+    setUnitSearchTerm("");
+    setUnitSearchResults([]);
+
+    alert(`${unitsToStage.length} unit(s) staged successfully.`);
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Could not stage selected units."
+    );
+  } finally {
+    setBulkStaging(false);
+  }
+}
 
   /*
   Function for staging: this is to search both tables (laptop/ce)
   */
   async function handleUnitSearch(term: string) {
-    setUnitSearchTerm(term);
+  setUnitSearchTerm(term);
+  setSelectedStageIds([]);
 
-    if (!term.trim()) {
-      setUnitSearchResults([]);
-      return;
-    }
-
-    const [laptopResults, ceResults] = await Promise.all([
-      supabase.from("warehouse_laptops").select("*").ilike("hostname", `%${term}%`),
-      supabase.from("warehouse_ce").select("*").ilike("hostname", `%${term}%`),
-    ]);
-
-    const combined = [
-      ...(laptopResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_laptops" })),
-      ...(ceResults.data ?? []).map((row) => ({ ...row, _sourceTable: "warehouse_ce" })),
-    ];
-
-    setUnitSearchResults(combined);
+  if (!term.trim()) {
+    setUnitSearchResults([]);
+    return;
   }
+
+  const { data, error } = await supabase
+    .from("warehouse_laptops")
+    .select("*")
+    .ilike("hostname", `%${term.trim()}%`)
+    .order("hostname", { ascending: true });
+
+  if (error) {
+    console.error("Unit search failed:", error);
+    setUnitSearchResults([]);
+    return;
+  }
+
+  setUnitSearchResults(data ?? []);
+}
 
     /*Filters the staged list down to whatever matches the second search box.*/
   const filteredStagingRows = stagingRows.filter((row) =>
@@ -522,7 +625,7 @@ async function handleReplaceAllDuplicates() {
   commit_staged_imports SQL function), then empties staging.*/
   async function handleCommitStaging() {
     const confirmed = window.confirm(
-      `Commit all ${stagingRows.length} staged items to the real tables?`
+      `Commit all ${stagingRows.length} changes?`
     );
     if (!confirmed) return;
 
@@ -559,8 +662,6 @@ async function handleReplaceAllDuplicates() {
     return;
   }
 
-  alert(`Trying to log activity for: ${user.email}`);
-
   const { error } = await supabase
     .from("user_activity")
     .insert({
@@ -576,8 +677,6 @@ async function handleReplaceAllDuplicates() {
     console.error("Activity logging error:", error);
     return;
   }
-
-  alert("Activity logged successfully!");
 }
 
   /*Function for loading supabase data.*/
@@ -612,6 +711,104 @@ async function handleReplaceAllDuplicates() {
     String(row[col] ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   ) 
   );
+
+  function toggleInventorySelection(id: string) {
+  setSelectedInventoryIds((current) =>
+    current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]
+  );
+}
+
+function toggleSelectAllInventory() {
+  const visibleIds = filteredRows
+    .filter(
+      (row) =>
+        !stagingRows.some(
+          (staged) => String(staged.source_unit_id) === String(row.id)
+        )
+    )
+    .map((row) => String(row.id));
+
+  const allSelected =
+    visibleIds.length > 0 &&
+    visibleIds.every((id) => selectedInventoryIds.includes(id));
+
+  setSelectedInventoryIds((current) =>
+    allSelected
+      ? current.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...current, ...visibleIds])]
+  );
+}
+
+async function handleStageSelectedInventory() {
+  if (stagingInventory || selectedInventoryIds.length === 0) return;
+
+  setStagingInventory(true);
+
+  try {
+    const selectedUnits = rows.filter((row) =>
+      selectedInventoryIds.includes(String(row.id))
+    );
+
+    const { data: existingStaged, error: checkError } = await supabase
+      .from("staging_import")
+      .select("source_unit_id")
+      .in("source_unit_id", selectedUnits.map((row) => row.id));
+
+    if (checkError) throw checkError;
+
+    const existingIds = new Set(
+      (existingStaged ?? []).map((row) => String(row.source_unit_id))
+    );
+
+    const unitsToStage = selectedUnits.filter(
+      (row) => !existingIds.has(String(row.id))
+    );
+
+    if (unitsToStage.length === 0) {
+      alert("Selected units are already staged.");
+      return;
+    }
+
+    const payload = unitsToStage.map((row) => {
+      const {
+        id,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by,
+        ...rest
+      } = row;
+
+      return {
+        ...rest,
+        equipment_type: "LAPTOP",
+        source_unit_id: id,
+      };
+    });
+
+    const { error: insertError } = await supabase
+      .from("staging_import")
+      .insert(payload);
+
+    if (insertError) throw insertError;
+
+    await fetchStaging();
+
+    setSelectedInventoryIds([]);
+
+    alert(`${unitsToStage.length} unit(s) added to staging.`);
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Could not stage selected units."
+    );
+  } finally {
+    setStagingInventory(false);
+  }
+}
 
   /*Function to call admin_add_column function in SQL. Refetch new data column from supabase.*/
    async function handleAddColumn() {
@@ -1417,6 +1614,20 @@ async function handleRemoveShelf() {
                 </div>
               </div>
 
+              <div className="inventoryBulkActions">
+  <span>{selectedInventoryIds.length} unit(s) selected</span>
+
+  <button
+    type="button"
+    disabled={selectedInventoryIds.length === 0 || stagingInventory}
+    onClick={handleStageSelectedInventory}
+  >
+    {stagingInventory
+      ? "Staging..."
+      : `Stage Selected (${selectedInventoryIds.length})`}
+  </button>
+</div>
+
               <div className="table">
                 {/*MAIN TABLE AREA
                   LOADING SUPABASE AND DISPLAYING ACTIVE DATA
@@ -1425,37 +1636,73 @@ async function handleRemoveShelf() {
                   {loading && <div className="tableRow">Loading...</div>}
                   {error && <div className="tableRow">Error: {error}</div>}
 
-                  {!loading && !error && (
-                    <>
-                      <div className="tableRow tableHeaderRow">
-                        {columns
-                          .filter((col) => col !== "id")
-                          .map((col) => (
-                            <span key={col}>{col}</span>
-                          ))}
+                  <div className="tableRow tableHeaderRow">
+  <span className="inventoryCheckboxCell">
+    <input
+      type="checkbox"
+      aria-label="Select all visible inventory units"
+      checked={
+        filteredRows.length > 0 &&
+        filteredRows
+          .filter(
+            (row) =>
+              !stagingRows.some(
+                (staged) =>
+                  String(staged.source_unit_id) === String(row.id)
+              )
+          )
+          .every((row) =>
+            selectedInventoryIds.includes(String(row.id))
+          )
+      }
+      onChange={toggleSelectAllInventory}
+    />
+  </span>
 
-                        <span>QR</span>
-                      </div>
+  {columns
+    .filter((col) => col !== "id")
+    .map((col) => (
+      <span key={col}>{col}</span>
+    ))}
+
+  <span>QR</span>
+</div>
 
                       {filteredRows.map((row) => (
-                        <div className="tableRow" key={row.id}>
-                          {columns
-                            .filter((col) => col !== "id")
-                            .map((col) => (
-                              <span key={col}>{String(row[col] ?? "")}</span>
-                            ))}
+  <div className="tableRow" key={row.id}>
+    <span className="inventoryCheckboxCell">
+      <input
+        type="checkbox"
+        aria-label={`Select ${row.hostname || row.id}`}
+        checked={selectedInventoryIds.includes(String(row.id))}
+        disabled={
+          stagingInventory ||
+          stagingRows.some(
+            (staged) =>
+              String(staged.source_unit_id) === String(row.id)
+          )
+        }
+        onChange={() =>
+          toggleInventorySelection(String(row.id))
+        }
+      />
+    </span>
 
-                          <span>
-                            <button
-                              onClick={() => handleGenerateQRCode(row)}
-                            >
-                              Generate QR
-                            </button>
-                          </span>
-                        </div>
-                      ))}
-                    </>
-                  )}
+    {columns
+      .filter((col) => col !== "id")
+      .map((col) => (
+        <span key={col}>
+          {String(row[col] ?? "")}
+        </span>
+      ))}
+
+    <span>
+      <button onClick={() => handleGenerateQRCode(row)}>
+        Generate QR
+      </button>
+    </span>
+  </div>
+))}
                 </div>
               </div>
             </div>
@@ -1579,14 +1826,84 @@ async function handleRemoveShelf() {
                   />
                 </div>
 
-                <div className="searchResults">
-                  {unitSearchResults.map((row) => (
-                    <button key={row.id} onClick={() => handleStageUnit(row)}>
-                      {row.hostname} — {row.equipment_type}
-                    </button>
-                  ))}
+                <div className="searchResults bulkStageResults">
+                  {unitSearchResults.length > 0 && (
+                    <>
+                    <label className="bulkStageSelectAll">
+                      <input
+                      type="checkbox"
+                      checked={
+                      unitSearchResults
+                        .filter(
+                          (row) =>
+                            !stagingRows.some(
+                              (staged) =>
+                                staged.source_unit_id === row.id
+                            )
+                        )
+                        .every((row) =>
+                          selectedStageIds.includes(String(row.id))
+                        )
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                  Select All Available
+                </label>
+
+                <div className="bulkStageList">
+                  {unitSearchResults.map((row) => {
+                    const alreadyStaged = stagingRows.some(
+                      (staged) => staged.source_unit_id === row.id
+                    );
+          
+                    return (
+                      <label
+                        key={row.id}
+                        className={`bulkStageItem ${
+                          alreadyStaged ? "alreadyStaged" : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedStageIds.includes(
+                            String(row.id)
+                          )}
+                          disabled={alreadyStaged || bulkStaging}
+                          onChange={() =>
+                            toggleStageSelection(String(row.id))
+                          }
+                        />
+          
+                        <span>
+                          <strong>{row.hostname || "No hostname"}</strong>
+                          <small>
+                            {row.serial_number || "No serial number"}
+                          </small>
+                        </span>
+          
+                        {alreadyStaged && (
+                          <small>Already staged</small>
+                        )}
+                      </label>
+                    );
+                  })}
                 </div>
 
+                <button
+                  type="button"
+                  className="bulkStageButton"
+                  disabled={
+                    selectedStageIds.length === 0 || bulkStaging
+                  }
+                  onClick={handleStageSelected}
+                >
+                  {bulkStaging
+                    ? "Staging..."
+                    : `Stage Selected (${selectedStageIds.length})`}
+                </button>
+              </>
+            )}
+          </div>
                 <h3>Staged Items ({stagingRows.length})</h3>
                 <input
                 type="text"

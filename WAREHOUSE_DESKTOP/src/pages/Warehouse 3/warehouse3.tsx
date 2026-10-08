@@ -367,6 +367,11 @@ function Warehouse3({
       .from("warehouse_yubikeys")
       .select("*")
       .order("hostname", { ascending: true });
+  
+  console.log("WAREHOUSE 3 ROW DATA:", rowData);
+  console.log("WAREHOUSE 3 ROW ERROR:", rowError);
+  console.log("WAREHOUSE 3 ROW COUNT:", rowData?.length);
+
   if (columnError) setError(columnError.message);
     else if (rowError) setError(rowError.message);
     else {

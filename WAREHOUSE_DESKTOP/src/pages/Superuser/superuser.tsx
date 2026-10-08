@@ -10,6 +10,8 @@ import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import { openUrl } from "@tauri-apps/plugin-opener";
+
 type SuperuserProps = {
   onBack: () => void;
   onWarehouse1: () => void;
@@ -54,7 +56,7 @@ function Superuser({
      ========================================================= */
 
   const [selectedTable, setSelectedTable] = useState<
-    "warehouse_laptops" | "warehouse_ce"
+    "warehouse_laptops" | "warehouse_ce" | "warehouse_yubikeys"
   >("warehouse_laptops");
 
   const [columns, setColumns] = useState<string[]>([]);
@@ -177,95 +179,21 @@ function Superuser({
   }
 
   /* =========================================================
-     RESET USER PASSWORD
+     RESET PASSWORD
      ========================================================= */
 
-  async function handleResetPassword(user: RegularUser) {
-
-    const confirmed = window.confirm(
-      `Send a password reset email to ${user.email}?`
-    );
-
-    if (!confirmed) return;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      user.email
-    );
-
-    if (error) {
-      alert(`Could not send reset email: ${error.message}`);
-      return;
-    }
-
-    alert(`Password reset email sent to ${user.email}.`);
-  }
-
-  /* =========================================================
-     REMOVE USER
-  ========================================================= */
-  async function handleRemoveUser(user: RegularUser) {
-  const {
-    data: { user: currentUser },
-    error: currentUserError,
-  } = await supabase.auth.getUser();
-
-  if (currentUserError || !currentUser) {
-    alert("Could not verify the logged-in user.");
-    return;
-  }
-
-  // Extra frontend protection.
-  // The Edge Function also checks this securely.
-  if (currentUser.id === user.id) {
-    alert("You cannot remove your own account.");
-    return;
-  }
-
-  const confirmed = window.confirm(
-    `Remove ${user.full_name}?\n\nThis will permanently delete their account and cannot be undone.`
+  const handleResetPassword = async () => {
+  await openUrl(
+    "https://warehouse-auth-dusky.vercel.app/"
   );
 
-  if (!confirmed) return;
-
-  const { data, error } = await supabase.functions.invoke(
-    "delete-user",
-    {
-      body: {
-        userId: user.id,
-      },
-    }
-  );
-
-  if (error) {
-    console.error("Delete user function error:", error);
-
-    alert(
-      `Could not remove user: ${error.message}`
-    );
-
-    return;
-  }
-
-  if (data?.error) {
-    alert(`Could not remove user: ${data.error}`);
-    return;
-  }
-
-  alert(
-    data?.message ||
-      `${user.full_name} has been removed.`
-  );
-
-  setSelectedUser(null);
-
-  await fetchRegularUsers();
-  }
+};
 
   /* =========================================================
      MONTHLY WAREHOUSE
      ========================================================= */
   const [monthlyWarehouse, setMonthlyWarehouse] = useState<
-    "warehouse_laptops" | "warehouse_ce"
+    "warehouse_laptops" | "warehouse_ce" | "warehouse_yubikeys"
   >("warehouse_laptops");
 
   const [monthlyMonth, setMonthlyMonth] = useState(
@@ -361,7 +289,9 @@ function Superuser({
   const warehouseName =
     monthlyWarehouse === "warehouse_laptops"
       ? "warehouse1"
-      : "warehouse2";
+      : monthlyWarehouse === "warehouse_ce"
+      ? "warehouse2"
+      : "warehouse3";
 
   const cleanedRows = monthlyRows.map((row) => {
     const {
@@ -376,7 +306,11 @@ function Superuser({
       qr_code:
         monthlyWarehouse === "warehouse_laptops"
           ? `warehouse_1:${id}`
-          : `warehouse_2:${id}`,
+          : monthlyWarehouse === "warehouse_ce"
+          ? `warehouse_2:${id}`
+          : monthlyWarehouse === "warehouse_yubikeys"
+          ? `warehouse_3:${id}`
+          : "",
     };
   });
 
@@ -416,7 +350,11 @@ function Superuser({
   const warehousePrefix =
     monthlyWarehouse === "warehouse_laptops"
       ? "warehouse_1"
-      : "warehouse_2";
+      : monthlyWarehouse === "warehouse_ce"
+      ? "warehouse_2"
+      : monthlyWarehouse === "warehouse_yubikeys"
+      ? "warehouse_3"
+      : "";
 
   try {
     return await QRCode.toDataURL(
@@ -444,8 +382,12 @@ function Superuser({
 
   const warehouseLabel =
     monthlyWarehouse === "warehouse_laptops"
-      ? "Warehouse 1"
-      : "Warehouse 2";
+      ? "warehouse_1"
+      : monthlyWarehouse === "warehouse_ce"
+      ? "warehouse_2"
+      : monthlyWarehouse === "warehouse_yubikeys"
+      ? "warehouse_3"
+      : "";
 
   const monthName = new Date(
     monthlyYear,
@@ -506,7 +448,11 @@ function Superuser({
       `${
         monthlyWarehouse === "warehouse_laptops"
           ? "warehouse_1"
-          : "warehouse_2"
+          : monthlyWarehouse === "warehouse_ce"
+          ? "warehouse_2"
+          : monthlyWarehouse === "warehouse_yubikeys"
+          ? "warehouse_3"
+          : ""
       }:${row.id}`,
     ]),
 
@@ -687,8 +633,12 @@ for (let i = 0; i < monthlyRows.length; i++) {
 
   const warehouseFile =
     monthlyWarehouse === "warehouse_laptops"
-      ? "warehouse1"
-      : "warehouse2";
+      ? "warehouse_1"
+          : monthlyWarehouse === "warehouse_ce"
+          ? "warehouse_2"
+          : monthlyWarehouse === "warehouse_yubikeys"
+          ? "warehouse_3"
+          : ""
 
   pdf.save(
     `${warehouseFile}_${monthlyYear}_${String(
@@ -977,6 +927,7 @@ for (let i = 0; i < monthlyRows.length; i++) {
                         e.target.value as
                           | "warehouse_laptops"
                           | "warehouse_ce"
+                          | "warehouse_yubikeys"
                         )
                       }
                       >
@@ -986,6 +937,10 @@ for (let i = 0; i < monthlyRows.length; i++) {
                         
                         <option value="warehouse_ce">
                           Warehouse 2
+                        </option>
+
+                        <option value="warehouse_yubikeys">
+                          Warehouse 3
                         </option>
                   </select>
                   
@@ -1119,18 +1074,16 @@ for (let i = 0; i < monthlyRows.length; i++) {
                       </p>
 
                     </div>
-                    {/*
+                    
                     <div className="userActions">
                       <button
-                        onClick={() =>
-                          handleResetPassword(
-                            selectedUser
-                          )
-                        }
+                        onClick={handleResetPassword}
                       >
                         Reset Password
                       </button>
+                    </div>
 
+                      {/*
                       <button
                         onClick={() =>
                           handleRemoveUser(
@@ -1181,20 +1134,22 @@ for (let i = 0; i < monthlyRows.length; i++) {
                         e.target.value as
                           | "warehouse_laptops"
                           | "warehouse_ce"
+                          | "warehouse_yubikeys"
                       )
                     }
                   >
-
                     <option value="warehouse_laptops">
-                      Warehouse 1: Laptops & Yubikey
+                      Warehouse 1: Laptops
                     </option>
 
                     <option value="warehouse_ce">
                       Warehouse 2: Computer Equipment
                     </option>
 
+                    <option value="warehouse_yubikeys">
+                      Warehouse 3: Yubikeys
+                    </option>
                   </select>
-
                 </div>
 
                 <div className="delColBlock">
