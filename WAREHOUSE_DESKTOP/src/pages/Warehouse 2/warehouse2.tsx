@@ -1,5 +1,5 @@
 import "./warehouse2.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "../../supabase/supabaseClient";
 
 import logo from "../../assets/logo.png";
@@ -23,68 +23,42 @@ function Warehouse2({
   onWarehouse1,
   onWarehouse3,
   onSuperuser,
-  isSuperuser,
+  isSuperuser
 }: Warehouse2Props) {
-  // =========================
-  // CSV IMPORT
-  // =========================
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // =========================
-  // UNIT SEARCH / STAGING
-  // =========================
+  const [duplicateRows, setDuplicateRows] = useState<Record<string, any>[]>([]);
+  const [showDuplicatePopup, setShowDuplicatePopup] = useState(false);
+
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
-  const [unitSearchResults, setUnitSearchResults] = useState<
-    Record<string, any>[]
-  >([]);
+  const [unitSearchResults, setUnitSearchResults] = useState<Record<string, any>[]>([]);
+  const [selectedStageIds, setSelectedStageIds] = useState<string[]>([]);
+  const [bulkStaging, setBulkStaging] = useState(false);
 
   const [stagingRows, setStagingRows] = useState<Record<string, any>[]>([]);
   const [stagingSearchTerm, setStagingSearchTerm] = useState("");
-  const [selectedStagingId, setSelectedStagingId] = useState<string | null>(
-    null
-  );
-  const [stagingEditValues, setStagingEditValues] = useState<
-    Record<string, any>
-  >({});
+  const [selectedStagingId, setSelectedStagingId] = useState<string | null>(null);
+  const [stagingEditValues, setStagingEditValues] = useState<Record<string, any>>({});
 
-  // =========================
-  // MAIN WAREHOUSE DATA
-  // =========================
   const [columns, setColumns] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, any>[]>([]);
+  const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>([]);
+  const [stagingInventory, setStagingInventory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // =========================
-  // SEARCH
-  // =========================
   const [searchTerm, setSearchTerm] = useState("");
-
-  // =========================
-  // ADD COLUMN
-  // =========================
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState("text");
 
-  // =========================
-  // EDIT DATA
-  // =========================
   const [searchUnitTerm, setSearchUnitTerm] = useState("");
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, any>>({});
 
-  // =========================
-  // LOG INVENTORY
-  // =========================
   const [showLogPopup, setShowLogPopup] = useState(false);
-  const [logFormValues, setLogFormValues] = useState<Record<string, string>>(
-    {}
-  );
+  const [logFormValues, setLogFormValues] = useState<Record<string, string>>({});
 
-  // =========================
-  // SHELF MANAGEMENT
-  // =========================
   const [shelves, setShelves] = useState<
     {
       id: string;
@@ -94,19 +68,15 @@ function Warehouse2({
       status: string;
     }[]
   >([]);
-
   const [shelvesLoading, setShelvesLoading] = useState(true);
   const [shelvesError, setShelvesError] = useState<string | null>(null);
   const [shelfSearchTerm, setShelfSearchTerm] = useState("");
   const [newShelfName, setNewShelfName] = useState("");
 
-  // ==========================================================
   // CSV IMPORT
-  // ==========================================================
 
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     setImporting(true);
@@ -118,8 +88,6 @@ function Warehouse2({
       complete: async (results) => {
         const parsedRows = results.data as Record<string, string>[];
 
-        console.log("CSV PARSED ROWS:", parsedRows);
-
         if (parsedRows.length === 0) {
           alert("The CSV contains no rows.");
           setImporting(false);
@@ -127,25 +95,89 @@ function Warehouse2({
           return;
         }
 
-        const { data, error } = await supabase
-          .from("staging_import")
-          .insert(parsedRows)
-          .select();
+        const { data: existingUnits, error: existingError } = await supabase
+          .from("warehouse_ce")
+          .select("*");
 
-        if (error) {
-          console.error("STAGING INSERT ERROR:", error);
-          alert(`Import failed: ${error.message}`);
-        } else {
-          console.log("STAGING INSERTED ROWS:", data);
+        if (existingError) {
+          alert(`Could not check existing units: ${existingError.message}`);
+          setImporting(false);
+          e.target.value = "";
+          return;
+        }
 
-          if (!data || data.length === 0) {
-            alert(
-              "Supabase accepted the request, but no staging rows were returned."
-            );
+        const newRows: Record<string, any>[] = [];
+        const duplicates: Record<string, any>[] = [];
+
+        for (const importedRow of parsedRows) {
+          const importedHostname = String(importedRow.hostname ?? "")
+            .trim()
+            .toLowerCase();
+
+          const importedSerial = String(importedRow.serial_number ?? "")
+            .trim()
+            .toLowerCase();
+
+          const cleanedImportedRow = {
+            ...importedRow,
+            equipment_type: "CE",
+          };
+
+          const hostnameMatch = importedHostname
+            ? (existingUnits ?? []).find(
+                (unit) =>
+                  String(unit.hostname ?? "")
+                    .trim()
+                    .toLowerCase() === importedHostname
+              )
+            : undefined;
+
+          const serialMatch = importedSerial
+            ? (existingUnits ?? []).find(
+                (unit) =>
+                  String(unit.serial_number ?? "")
+                    .trim()
+                    .toLowerCase() === importedSerial
+              )
+            : undefined;
+
+          if (hostnameMatch) {
+            duplicates.push({
+              imported: cleanedImportedRow,
+              existing: hostnameMatch,
+              conflictType: null,
+            });
+          } else if (serialMatch) {
+            duplicates.push({
+              imported: cleanedImportedRow,
+              existing: serialMatch,
+              conflictType: "serial_conflict",
+            });
           } else {
-            alert(`Imported ${data.length} row(s) into staging successfully.`);
-            await fetchStaging();
+            newRows.push(cleanedImportedRow);
           }
+        }
+
+        if (newRows.length > 0) {
+          const { error: insertError } = await supabase
+            .from("staging_import")
+            .insert(newRows);
+
+          if (insertError) {
+            alert(`Import failed: ${insertError.message}`);
+            setImporting(false);
+            e.target.value = "";
+            return;
+          }
+        }
+
+        await fetchStaging();
+
+        if (duplicates.length > 0) {
+          setDuplicateRows(duplicates);
+          setShowDuplicatePopup(true);
+        } else {
+          alert(`${newRows.length} new unit(s) staged successfully.`);
         }
 
         setImporting(false);
@@ -153,7 +185,6 @@ function Warehouse2({
       },
 
       error: (err) => {
-        console.error("CSV READ ERROR:", err);
         alert(`Could not read file: ${err.message}`);
         setImporting(false);
         e.target.value = "";
@@ -161,14 +192,166 @@ function Warehouse2({
     });
   }
 
-  // ==========================================================
-  // STAGING
-  // ==========================================================
+  // DUPLICATE HANDLING
+
+  function handleKeepExisting(index: number) {
+    setDuplicateRows((current) => {
+      const updated = current.filter((_, i) => i !== index);
+
+      if (updated.length === 0) {
+        setShowDuplicatePopup(false);
+      }
+
+      return updated;
+    });
+  }
+
+  function handleKeepAllExisting() {
+    setDuplicateRows([]);
+    setShowDuplicatePopup(false);
+  }
+
+  async function handleReplaceDuplicate(index: number) {
+    const duplicate = duplicateRows[index];
+
+    if (!duplicate) return;
+
+    if (duplicate.conflictType === "serial_conflict") {
+      alert(
+        `Cannot automatically replace ${duplicate.imported.hostname || "this unit"}.\n\n` +
+        `That hostname does not currently exist, but its serial number belongs to another existing unit.\n\n` +
+        `Serial currently belongs to: ${duplicate.existing.hostname || "-"}\n\n` +
+        `Please correct the CSV data or keep the existing unit.`
+      );
+      return;
+    }
+
+    const existingUnit = duplicate.existing;
+    const importedUnit = duplicate.imported;
+
+    const {
+      id,
+      created_at,
+      created_by,
+      updated_at,
+      updated_by,
+      ...replacementData
+    } = importedUnit;
+
+    const { error } = await supabase
+      .from("warehouse_ce")
+      .update({
+        ...replacementData,
+        equipment_type: "CE",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingUnit.id);
+
+    if (error) {
+      alert(`Could not replace unit: ${error.message}`);
+      return;
+    }
+
+    await logUserActivity(
+      "REPLACED FROM CSV",
+      existingUnit.hostname ||
+        existingUnit.serial_number ||
+        existingUnit.id,
+      "Existing Warehouse 2 unit was replaced with data from CSV import."
+    );
+
+    await fetchData();
+
+    setDuplicateRows((current) => {
+      const updated = current.filter((_, i) => i !== index);
+
+      if (updated.length === 0) {
+        setShowDuplicatePopup(false);
+      }
+
+      return updated;
+    });
+  }
+
+  async function handleReplaceAllDuplicates() {
+    if (duplicateRows.length === 0) return;
+
+    const conflict = duplicateRows.find(
+      (duplicate) => duplicate.conflictType === "serial_conflict"
+    );
+
+    if (conflict) {
+      alert(
+        `Replace All cannot continue.\n\n` +
+        `${conflict.imported.hostname || "One imported unit"} uses a serial number that belongs to another existing unit.\n\n` +
+        `Keep or resolve that unit first, then try Replace All again.`
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Replace all ${duplicateRows.length} existing unit(s) with the imported CSV data?`
+    );
+
+    if (!confirmed) return;
+
+    for (const duplicate of duplicateRows) {
+      const existingUnit = duplicate.existing;
+      const importedUnit = duplicate.imported;
+
+      const {
+        id,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by,
+        ...replacementData
+      } = importedUnit;
+
+      const { error } = await supabase
+        .from("warehouse_ce")
+        .update({
+          ...replacementData,
+          equipment_type: "CE",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingUnit.id);
+
+      if (error) {
+        alert(
+          `Could not replace ${
+            existingUnit.hostname ||
+            existingUnit.serial_number ||
+            existingUnit.id
+          }: ${error.message}`
+        );
+        return;
+      }
+
+      await logUserActivity(
+        "REPLACED FROM CSV",
+        existingUnit.hostname ||
+          existingUnit.serial_number ||
+          existingUnit.id,
+        "Existing Warehouse 2 unit was replaced with data from CSV import."
+      );
+    }
+
+    await fetchData();
+
+    setDuplicateRows([]);
+    setShowDuplicatePopup(false);
+
+    alert("All duplicate units were replaced successfully.");
+  }
+
+  // STAGING FUNCTIONS
 
   async function fetchStaging() {
     const { data, error } = await supabase
       .from("staging_import")
       .select("*")
+      .eq("equipment_type", "CE")
       .order("created_at", { ascending: false });
 
     console.log("FETCH STAGING DATA:", data);
@@ -179,92 +362,167 @@ function Warehouse2({
       return;
     }
 
+    console.log("STAGING ROW COUNT:", data?.length ?? 0);
+
     setStagingRows(data ?? []);
   }
 
-  async function handleStageUnit(row: Record<string, any>) {
-    const {
-      id,
-      created_at,
-      updated_at,
-      created_by,
-      updated_by,
-      _sourceTable,
-      ...rest
-    } = row;
+  function toggleStageSelection(id: string) {
+    setSelectedStageIds((current) =>
+      current.includes(id)
+        ? current.filter((selectedId) => selectedId !== id)
+        : [...current, id]
+    );
+  }
 
-    const { error } = await supabase
-      .from("staging_import")
-      .insert({
-        ...rest,
-        source_unit_id: id,
+  function toggleSelectAll() {
+    const availableIds = unitSearchResults
+      .filter(
+        (row) =>
+          !stagingRows.some(
+            (staged) => staged.source_unit_id === row.id
+          )
+      )
+      .map((row) => String(row.id));
+
+    const allSelected = availableIds.every((id) =>
+      selectedStageIds.includes(id)
+    );
+
+    setSelectedStageIds((current) =>
+      allSelected
+        ? current.filter((id) => !availableIds.includes(id))
+        : [...new Set([...current, ...availableIds])]
+    );
+  }
+
+  async function handleStageSelected() {
+    if (bulkStaging || selectedStageIds.length === 0) return;
+
+    const selectedUnits = unitSearchResults.filter((row) =>
+      selectedStageIds.includes(String(row.id))
+    );
+
+    if (selectedUnits.length === 0) {
+      alert("No units selected.");
+      return;
+    }
+
+    setBulkStaging(true);
+
+    try {
+      const { data: existingStaged, error: checkError } =
+        await supabase
+          .from("staging_import")
+          .select("source_unit_id")
+          .in(
+            "source_unit_id",
+            selectedUnits.map((row) => row.id)
+          );
+
+      if (checkError) throw checkError;
+
+      const existingIds = new Set(
+        (existingStaged ?? []).map((row) =>
+          String(row.source_unit_id)
+        )
+      );
+
+      const unitsToStage = selectedUnits.filter(
+        (row) => !existingIds.has(String(row.id))
+      );
+
+      if (unitsToStage.length === 0) {
+        alert("All selected units are already staged.");
+        await fetchStaging();
+        return;
+      }
+
+      const payload = unitsToStage.map((row) => {
+        const {
+          id,
+          created_at,
+          updated_at,
+          created_by,
+          updated_by,
+          _sourceTable,
+          ...rest
+        } = row;
+
+        return {
+          ...rest,
+          source_unit_id: id,
+        };
       });
 
-    if (error) {
-      alert(error.message);
-    } else {
+      const { error: insertError } = await supabase
+        .from("staging_import")
+        .insert(payload);
+
+      if (insertError) throw insertError;
+
+      await fetchStaging();
+
+      setSelectedStageIds([]);
       setUnitSearchTerm("");
       setUnitSearchResults([]);
-      fetchStaging();
+
+      alert(`${unitsToStage.length} unit(s) staged successfully.`);
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Could not stage selected units."
+      );
+    } finally {
+      setBulkStaging(false);
     }
   }
 
-  // Search both Warehouse 1 and Warehouse 2.
   async function handleUnitSearch(term: string) {
     setUnitSearchTerm(term);
+    setSelectedStageIds([]);
 
     if (!term.trim()) {
       setUnitSearchResults([]);
       return;
     }
 
-    const [laptopResults, ceResults] = await Promise.all([
-      supabase
-        .from("warehouse_laptops")
-        .select("*")
-        .ilike("hostname", `%${term}%`),
+    const { data, error } = await supabase
+      .from("warehouse_ce")
+      .select("*")
 
-      supabase
-        .from("warehouse_ce")
-        .select("*")
-        .ilike("hostname", `%${term}%`),
-    ]);
+    .ilike("hostname", `%${term.trim()}%`)
+    .order("hostname", { ascending: true });
 
-    const combined = [
-      ...(laptopResults.data ?? []).map((row) => ({
-        ...row,
-        _sourceTable: "warehouse_laptops",
-      })),
-
-      ...(ceResults.data ?? []).map((row) => ({
-        ...row,
-        _sourceTable: "warehouse_ce",
-      })),
-    ];
-
-    setUnitSearchResults(combined);
+  if (error) {
+    console.error("Unit search failed:", error);
+    setUnitSearchResults([]);
+    return;
   }
 
+  setUnitSearchResults(data ?? []);
+}
+
+  /*Filters the staged list down to whatever matches the second search box.*/
   const filteredStagingRows = stagingRows.filter((row) =>
-    Object.values(row).some((value) =>
-      String(value ?? "")
-        .toLowerCase()
-        .includes(stagingSearchTerm.toLowerCase())
+    Object.values(row).some((val) =>
+      String(val ?? "").toLowerCase().includes(stagingSearchTerm.toLowerCase())
     )
   );
 
+  /*Clicking a staged item loads its values into the edit form.*/
   function handleSelectStagingRow(row: Record<string, any>) {
     setSelectedStagingId(row.id);
     setStagingEditValues({ ...row });
   }
 
+  /*Called as the user types into any field in the staged item's edit form.*/
   function handleStagingFieldChange(field: string, value: string) {
-    setStagingEditValues((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setStagingEditValues((prev) => ({ ...prev, [field]: value }));
   }
 
+  /*Saves edits to a staged item (still inside staging_import, not committed yet).*/
   async function handleSaveStagingEdit() {
     const { id, created_at, ...updatableFields } = stagingEditValues;
 
@@ -282,6 +540,7 @@ function Warehouse2({
     }
   }
 
+  /*Removes one item from staging entirely (changed your mind about staging it).*/
   async function handleRemoveFromStaging(id: string) {
     const { error } = await supabase
       .from("staging_import")
@@ -291,59 +550,52 @@ function Warehouse2({
     if (error) {
       alert(error.message);
     } else {
-      if (selectedStagingId === id) {
-        setSelectedStagingId(null);
-        setStagingEditValues({});
-      }
-
+      if (selectedStagingId === id) setSelectedStagingId(null);
       fetchStaging();
     }
   }
 
+  /*Clear stage*/
   async function handleClearStage() {
-    if (stagingRows.length === 0) {
-      alert("There are no staged items to clear.");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Clear all ${stagingRows.length} staged items?`
-    );
-
-    if (!confirmed) return;
-
-    const stagedIds = stagingRows.map((row) => row.id);
-
-    const { error } = await supabase
-      .from("staging_import")
-      .delete()
-      .in("id", stagedIds);
-
-    if (error) {
-      alert(`Could not clear stage: ${error.message}`);
-      return;
-    }
-
-    setStagingRows([]);
-    setSelectedStagingId(null);
-    setStagingEditValues({});
-    setUnitSearchTerm("");
-    setUnitSearchResults([]);
-    setStagingSearchTerm("");
-
-    alert("Stage cleared.");
+  if (stagingRows.length === 0) {
+    alert("There are no staged items to clear.");
+    return;
   }
 
+  const confirmed = window.confirm(
+    `Clear all ${stagingRows.length} staged items?`
+  );
+
+  if (!confirmed) return;
+
+  const stagedIds = stagingRows.map((row) => row.id);
+
+  const { error } = await supabase
+    .from("staging_import")
+    .delete()
+    .in("id", stagedIds);
+
+  if (error) {
+    alert(`Could not clear stage: ${error.message}`);
+    return;
+  }
+
+  setStagingRows([]);
+  setSelectedStagingId(null);
+  setStagingEditValues({});
+  setUnitSearchTerm("");
+  setUnitSearchResults([]);
+  setStagingSearchTerm("");
+
+  alert("Stage cleared.");
+}
+
+  /*Commits everything currently in staging into the real tables (via the
+  commit_staged_imports SQL function), then empties staging.*/
   async function handleCommitStaging() {
-    if (stagingRows.length === 0) {
-      alert("There are no staged items to commit.");
-      return;
-    }
-
     const confirmed = window.confirm(
-      `Commit all ${stagingRows.length} staged items to the real tables?`
+      `Commit all ${stagingRows.length} changes?`
     );
-
     if (!confirmed) return;
 
     const { error } = await supabase.rpc("commit_staged_imports");
@@ -352,41 +604,36 @@ function Warehouse2({
       alert(error.message);
     } else {
       alert("Staged items committed.");
-
       setStagingRows([]);
       setSelectedStagingId(null);
-      setStagingEditValues({});
-
-      fetchData();
-      fetchStaging();
+      fetchData(); // refresh the main laptops table
     }
   }
 
-  // ==========================================================
-  // USER ACTIVITY
-  // ==========================================================
-
+  /*Function to let superuser track user activity Im gonna cry*/
   async function logUserActivity(
-    action: string,
-    itemIdentifier?: string,
-    details?: string
-  ) {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  action: string,
+  itemIdentifier?: string,
+  details?: string
+) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-    if (userError) {
-      console.error("Could not get user:", userError);
-      return;
-    }
+  if (userError) {
+    alert(`Could not get user: ${userError.message}`);
+    return;
+  }
 
-    if (!user) {
-      console.error("No logged-in user found.");
-      return;
-    }
+  if (!user) {
+    alert("Activity logging failed: No logged-in user found.");
+    return;
+  }
 
-    const { error } = await supabase.from("user_activity").insert({
+  const { error } = await supabase
+    .from("user_activity")
+    .insert({
       user_id: user.id,
       warehouse: "warehouse_2",
       action,
@@ -394,36 +641,28 @@ function Warehouse2({
       details: details ?? null,
     });
 
-    if (error) {
-      console.error("Activity logging error:", error);
-    }
+  if (error) {
+    alert(`Activity logging failed: ${error.message}`);
+    console.error("Activity logging error:", error);
+    return;
   }
+}
 
-  // ==========================================================
-  // LOAD WAREHOUSE 2 DATA
-  // ==========================================================
-
+  /*Function for loading supabase data.*/
   async function fetchData() {
     setLoading(true);
 
-    const { data: columnData, error: columnError } = await supabase.rpc(
-      "get_table_columns",
-      {
-        target_table: "warehouse_ce",
-      }
-    );
+    const { data: columnData, error: columnError } = await supabase
+      .rpc("get_table_columns", { target_table: "warehouse_ce" });
 
     const { data: rowData, error: rowError } = await supabase
       .from("warehouse_ce")
       .select("*")
       .order("hostname", { ascending: true });
-
-    if (columnError) {
-      setError(columnError.message);
-    } else if (rowError) {
-      setError(rowError.message);
-    } else {
-      setColumns((columnData ?? []).map((column: any) => column.column_name));
+  if (columnError) setError(columnError.message);
+    else if (rowError) setError(rowError.message);
+    else {
+      setColumns((columnData ?? []).map((c: any) => c.column_name));
       setRows(rowData ?? []);
       setError(null);
     }
@@ -433,30 +672,116 @@ function Warehouse2({
 
   useEffect(() => {
     fetchData();
-    fetchStaging();
   }, []);
 
-  // ==========================================================
-  // MAIN SEARCH
-  // ==========================================================
-
+  /*Function for the search and filter function*/
   const filteredRows = rows.filter((row) =>
-    columns.some((column) =>
-      String(row[column] ?? "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    )
+    columns.some((col) =>
+    String(row[col] ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+  ) 
   );
 
-  // ==========================================================
-  // ADD COLUMN
-  // ==========================================================
+  function toggleInventorySelection(id: string) {
+  setSelectedInventoryIds((current) =>
+    current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]
+  );
+}
 
-  async function handleAddColumn() {
-    if (!newColumnName.trim()) {
-      alert("Enter a column name.");
+function toggleSelectAllInventory() {
+  const visibleIds = filteredRows
+    .filter(
+      (row) =>
+        !stagingRows.some(
+          (staged) => String(staged.source_unit_id) === String(row.id)
+        )
+    )
+    .map((row) => String(row.id));
+
+  const allSelected =
+    visibleIds.length > 0 &&
+    visibleIds.every((id) => selectedInventoryIds.includes(id));
+
+  setSelectedInventoryIds((current) =>
+    allSelected
+      ? current.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...current, ...visibleIds])]
+  );
+}
+
+async function handleStageSelectedInventory() {
+  if (stagingInventory || selectedInventoryIds.length === 0) return;
+
+  setStagingInventory(true);
+
+  try {
+    const selectedUnits = rows.filter((row) =>
+      selectedInventoryIds.includes(String(row.id))
+    );
+
+    const { data: existingStaged, error: checkError } = await supabase
+      .from("staging_import")
+      .select("source_unit_id")
+      .in("source_unit_id", selectedUnits.map((row) => row.id));
+
+    if (checkError) throw checkError;
+
+    const existingIds = new Set(
+      (existingStaged ?? []).map((row) => String(row.source_unit_id))
+    );
+
+    const unitsToStage = selectedUnits.filter(
+      (row) => !existingIds.has(String(row.id))
+    );
+
+    if (unitsToStage.length === 0) {
+      alert("Selected units are already staged.");
       return;
     }
+
+    const payload = unitsToStage.map((row) => {
+      const {
+        id,
+        created_at,
+        updated_at,
+        created_by,
+        updated_by,
+        ...rest
+      } = row;
+
+      return {
+        ...rest,
+        equipment_type: "CE",
+        source_unit_id: id,
+      };
+    });
+
+    const { error: insertError } = await supabase
+      .from("staging_import")
+      .insert(payload);
+
+    if (insertError) throw insertError;
+
+    await fetchStaging();
+
+    setSelectedInventoryIds([]);
+
+    alert(`${unitsToStage.length} unit(s) added to staging.`);
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Could not stage selected units."
+    );
+  } finally {
+    setStagingInventory(false);
+  }
+}
+
+  /*Function to call admin_add_column function in SQL. Refetch new data column from supabase.*/
+   async function handleAddColumn() {
+    if (!newColumnName.trim()) return;
 
     const { error } = await supabase.rpc("admin_add_column", {
       target_table: "warehouse_ce",
@@ -472,34 +797,19 @@ function Warehouse2({
     }
   }
 
-  // ==========================================================
-  // EDIT DATA
-  // ==========================================================
-
+  /*Function to edit data.*/
   function handleSelectUnit(row: Record<string, any>) {
     setSelectedUnitId(row.id);
-    setEditValues({ ...row });
+      setEditValues({ ...row });
     setSearchUnitTerm("");
   }
 
   function handleEditFieldChange(column: string, value: string) {
-    setEditValues((previous) => ({
-      ...previous,
-      [column]: value,
-    }));
+    setEditValues((prev) => ({ ...prev, [column]: value }));
   }
 
   async function handleSaveUnit() {
-    if (!selectedUnitId) return;
-
-    const {
-      id,
-      created_at,
-      created_by,
-      updated_at,
-      updated_by,
-      ...updatableFields
-    } = editValues;
+    const { id, created_at, created_by, ...updatableFields } = editValues;
 
     const { error } = await supabase
       .from("warehouse_ce")
@@ -507,20 +817,13 @@ function Warehouse2({
       .eq("id", selectedUnitId);
 
     if (error) {
+
       alert(error.message);
-      return;
+    } else {
+      setSelectedUnitId(null);
+      setEditValues({});
+      fetchData();
     }
-
-    await logUserActivity(
-      "Updated Inventory",
-      editValues.hostname || selectedUnitId,
-      "Updated an item in Warehouse 2"
-    );
-
-    setSelectedUnitId(null);
-    setEditValues({});
-
-    fetchData();
   }
 
   function handleCancelUnitEdit() {
@@ -528,32 +831,28 @@ function Warehouse2({
     setEditValues({});
   }
 
+  /*Search for the edit data function*/
   const matchedUnits = searchUnitTerm.trim()
     ? rows.filter((row) =>
-        columns.some((column) =>
-          String(row[column] ?? "")
+        columns.some((col) =>
+          String(row[col] ?? "")
             .toLowerCase()
             .includes(searchUnitTerm.toLowerCase())
         )
       )
     : [];
 
-  // ==========================================================
-  // LOG INVENTORY
-  // ==========================================================
-
+  /*Function to open the popup page for log inventory.*/
   function handleOpenLogPopup() {
     setLogFormValues({});
     setShowLogPopup(true);
   }
 
   function handleLogFieldChange(field: string, value: string) {
-    setLogFormValues((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setLogFormValues((prev) => ({ ...prev, [field]: value }));
   }
 
+  /*Insert a new unit into Warehouse 2.*/
   async function handleSubmitLog() {
     const { error } = await supabase
       .from("warehouse_ce")
@@ -572,7 +871,6 @@ function Warehouse2({
 
     setShowLogPopup(false);
     setLogFormValues({});
-
     fetchData();
   }
 
@@ -581,10 +879,7 @@ function Warehouse2({
     setLogFormValues({});
   }
 
-  // ==========================================================
-  // QR CODE
-  // ==========================================================
-
+  /*Generate QR Code for an inventory unit.*/
   async function handleGenerateQRCode(row: Record<string, any>) {
     if (!row.id) {
       alert("This unit does not have a permanent ID yet.");
@@ -600,11 +895,10 @@ function Warehouse2({
       });
 
       const link = document.createElement("a");
-
       link.href = qrDataUrl;
 
       const safeHostname = String(
-        row.hostname || "warehouse2-unit"
+        row.hostname || "warehouse-unit"
       ).replace(/[^a-zA-Z0-9-_]/g, "_");
 
       link.download = `${safeHostname}_QR.png`;
@@ -618,10 +912,7 @@ function Warehouse2({
     }
   }
 
-  // ==========================================================
-  // EXPORT CSV
-  // ==========================================================
-
+  /*Export staged units to CSV.*/
   function handleExportStagedCSV() {
     if (stagingRows.length === 0) {
       alert("There are no staged units to export.");
@@ -629,7 +920,11 @@ function Warehouse2({
     }
 
     const cleanedRows = stagingRows.map((row) => {
-      const { id, created_at, ...exportableFields } = row;
+      const {
+        id,
+        created_at,
+        ...exportableFields
+      } = row;
 
       return exportableFields;
     });
@@ -641,11 +936,9 @@ function Warehouse2({
     });
 
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
 
     link.href = url;
-
     link.download = `warehouse2_staged_${new Date()
       .toISOString()
       .slice(0, 10)}.csv`;
@@ -657,19 +950,12 @@ function Warehouse2({
     URL.revokeObjectURL(url);
   }
 
-  // ==========================================================
-  // EXPORT PDF
-  // ==========================================================
-
+  /*Export staged units and QR labels to PDF.*/
   async function handleExportStagedPDF() {
     if (stagingRows.length === 0) {
       alert("There are no staged units to export.");
       return;
     }
-
-    // ========================================================
-    // INVENTORY TABLE
-    // ========================================================
 
     const pdf = new jsPDF({
       orientation: "landscape",
@@ -687,7 +973,10 @@ function Warehouse2({
       22
     );
 
-    const ignoredColumns = ["id", "created_at"];
+    const ignoredColumns = [
+      "id",
+      "created_at",
+    ];
 
     const exportColumns = Object.keys(stagingRows[0]).filter(
       (column) => !ignoredColumns.includes(column)
@@ -695,36 +984,24 @@ function Warehouse2({
 
     autoTable(pdf, {
       startY: 28,
-
       head: [exportColumns],
-
       body: stagingRows.map((row) =>
         exportColumns.map((column) =>
           String(row[column] ?? "")
         )
       ),
-
       styles: {
         fontSize: 6,
       },
-
       headStyles: {
         fontSize: 6,
       },
     });
 
-    // ========================================================
-    // QR CODE LABEL PAGES
-    //
-    // 4 columns x 4 rows
-    // = 16 QR labels per page
-    // ========================================================
-
     const qrColumns = 4;
     const qrRows = 4;
     const qrPerPage = qrColumns * qrRows;
 
-    // Start the QR labels on a separate portrait page.
     pdf.addPage("a4", "portrait");
 
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -744,16 +1021,12 @@ function Warehouse2({
     for (let i = 0; i < stagingRows.length; i++) {
       const row = stagingRows[i];
 
-      // Add another QR page after every 16 units.
       if (i > 0 && i % qrPerPage === 0) {
         pdf.addPage("a4", "portrait");
       }
 
       const positionOnPage = i % qrPerPage;
-
-      const column =
-        positionOnPage % qrColumns;
-
+      const column = positionOnPage % qrColumns;
       const gridRow = Math.floor(
         positionOnPage / qrColumns
       );
@@ -767,186 +1040,89 @@ function Warehouse2({
       const centerX =
         cellX + cellWidth / 2;
 
-      // ======================================================
-      // GENERATE QR CODE
-      // ======================================================
-
-      /*
-        If this was staged from an existing warehouse item,
-        source_unit_id is its permanent warehouse ID.
-
-        Otherwise fall back to its staging ID.
-      */
       const unitId =
         row.source_unit_id || row.id;
 
-      /*
-        IMPORTANT:
-        This is Warehouse 2, so the QR code must identify
-        the unit as belonging to warehouse_2.
-      */
       const qrValue = `warehouse_2:${unitId}`;
 
-      try {
-        const qrDataUrl = await QRCode.toDataURL(
-          qrValue,
-          {
-            width: 300,
-            margin: 1,
-          }
-        );
+      const qrDataUrl = await QRCode.toDataURL(qrValue, {
+        width: 300,
+        margin: 1,
+      });
 
-        // ====================================================
-        // QR POSITION
-        // ====================================================
+      const qrX = centerX - qrSize / 2;
+      const qrY = cellY + 3;
 
-        const qrX =
-          centerX - qrSize / 2;
+      pdf.addImage(
+        qrDataUrl,
+        "PNG",
+        qrX,
+        qrY,
+        qrSize,
+        qrSize
+      );
 
-        const qrY =
-          cellY + 3;
+      let textY = qrY + qrSize + 4;
 
-        pdf.addImage(
-          qrDataUrl,
-          "PNG",
-          qrX,
-          qrY,
-          qrSize,
-          qrSize
-        );
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
 
-        // ====================================================
-        // INFORMATION UNDER QR CODE
-        // ====================================================
+      pdf.text(
+        String(row.hostname || "No Hostname"),
+        centerX,
+        textY,
+        {
+          align: "center",
+          maxWidth: cellWidth - 4,
+        }
+      );
 
-        let textY =
-          qrY + qrSize + 4;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(6.5);
 
-        // -------------------------
-        // HOSTNAME
-        // -------------------------
+      textY += 4;
 
-        pdf.setFont(
-          "helvetica",
-          "bold"
-        );
+      pdf.text(
+        `Checked By: ${row.checked_by || "-"}`,
+        centerX,
+        textY,
+        {
+          align: "center",
+          maxWidth: cellWidth - 4,
+        }
+      );
 
-        pdf.setFontSize(8);
+      textY += 3.5;
 
-        pdf.text(
-          String(
-            row.hostname || "No Hostname"
-          ),
-          centerX,
-          textY,
-          {
-            align: "center",
-            maxWidth: cellWidth - 4,
-          }
-        );
+      pdf.text(
+        `Rack & Bay: ${
+          row.rack_and_bay ||
+          row.shelf ||
+          "-"
+        }`,
+        centerX,
+        textY,
+        {
+          align: "center",
+          maxWidth: cellWidth - 4,
+        }
+      );
 
-        // -------------------------
-        // OTHER INFORMATION
-        // -------------------------
+      textY += 3.5;
 
-        pdf.setFont(
-          "helvetica",
-          "normal"
-        );
+      const dateValue = row.created_at
+        ? new Date(row.created_at).toLocaleDateString()
+        : new Date().toLocaleDateString();
 
-        pdf.setFontSize(6.5);
-
-        // Checked By
-        textY += 4;
-
-        pdf.text(
-          `Checked By: ${
-            row.checked_by || "-"
-          }`,
-          centerX,
-          textY,
-          {
-            align: "center",
-            maxWidth: cellWidth - 4,
-          }
-        );
-
-        // Rack & Bay / Shelf
-        textY += 3.5;
-
-        pdf.text(
-          `Rack & Bay: ${
-            row.rack_and_bay ||
-            row.shelf ||
-            "-"
-          }`,
-          centerX,
-          textY,
-          {
-            align: "center",
-            maxWidth: cellWidth - 4,
-          }
-        );
-
-        // Date
-        textY += 3.5;
-
-        const dateValue =
-          row.created_at
-            ? new Date(
-                row.created_at
-              ).toLocaleDateString()
-            : new Date().toLocaleDateString();
-
-        pdf.text(
-          `Date: ${dateValue}`,
-          centerX,
-          textY,
-          {
-            align: "center",
-          }
-        );
-      } catch (error) {
-        console.error(
-          `Could not generate QR for ${
-            row.hostname || row.id
-          }:`,
-          error
-        );
-
-        /*
-          If one QR fails, don't cancel the entire PDF.
-          Put an error message in that QR slot instead.
-        */
-
-        pdf.setFontSize(7);
-
-        pdf.text(
-          "QR generation failed",
-          centerX,
-          cellY + 20,
-          {
-            align: "center",
-          }
-        );
-
-        pdf.text(
-          String(
-            row.hostname || "Unknown Unit"
-          ),
-          centerX,
-          cellY + 25,
-          {
-            align: "center",
-            maxWidth: cellWidth - 4,
-          }
-        );
-      }
+      pdf.text(
+        `Date: ${dateValue}`,
+        centerX,
+        textY,
+        {
+          align: "center",
+        }
+      );
     }
-
-    // ========================================================
-    // SAVE PDF
-    // ========================================================
 
     pdf.save(
       `warehouse2_staged_${new Date()
@@ -955,80 +1131,74 @@ function Warehouse2({
     );
   }
 
-  // ==========================================================
-  // PULL OUT
-  // ==========================================================
-
+  /*Permanently pull out staged existing units.*/
   async function handlePullOut() {
-  const existingUnits = stagingRows.filter(
-    (row) => row.source_unit_id
-  );
+    const existingUnits = stagingRows.filter(
+      (row) => row.source_unit_id
+    );
 
-  if (existingUnits.length === 0) {
+    if (existingUnits.length === 0) {
+      alert(
+        "There are no existing warehouse units staged for pull out."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `PERMANENTLY DELETE ${existingUnits.length} unit(s) from Warehouse 2?\n\n` +
+        "This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    for (const row of existingUnits) {
+      const unitId = row.source_unit_id;
+
+      await logUserActivity(
+        "PULL OUT",
+        row.hostname || row.serial_number || unitId,
+        `Permanently removed from Warehouse 2. Unit ID: ${unitId}`
+      );
+
+      const { error: deleteError } = await supabase
+        .from("warehouse_ce")
+        .delete()
+        .eq("id", unitId);
+
+      if (deleteError) {
+        alert(
+          `Could not permanently delete ${
+            row.hostname || unitId
+          }: ${deleteError.message}`
+        );
+        return;
+      }
+
+      const { error: stagingDeleteError } = await supabase
+        .from("staging_import")
+        .delete()
+        .eq("id", row.id);
+
+      if (stagingDeleteError) {
+        alert(
+          `The unit was deleted from Warehouse 2, but its staging copy could not be removed: ${stagingDeleteError.message}`
+        );
+        return;
+      }
+    }
+
     alert(
-      "There are no existing warehouse units staged for pull out."
-    );
-    return;
-  }
-
-  const confirmed = window.confirm(
-    `PERMANENTLY DELETE ${existingUnits.length} unit(s) from Warehouse 1?\n\n` +
-      "This action cannot be undone."
-  );
-
-  if (!confirmed) return;
-
-  for (const row of existingUnits) {
-    const unitId = row.source_unit_id;
-
-    // Record the action BEFORE deleting the equipment.
-    await logUserActivity(
-      "PULL OUT",
-      row.hostname || row.serial_number || unitId,
-      `Permanently removed from Warehouse 2. Unit ID: ${unitId}`
+      `${existingUnits.length} unit(s) permanently pulled out from Warehouse 2.`
     );
 
-    const { error: deleteError } = await supabase
-      .from("warehouse_ce")
-      .delete()
-      .eq("id", unitId);
+    setSelectedStagingId(null);
+    setStagingEditValues({});
 
-    if (deleteError) {
-      alert(
-        `Could not permanently delete ${
-          row.hostname || unitId
-        }: ${deleteError.message}`
-      );
-      return;
-    }
-
-    const { error: stagingDeleteError } = await supabase
-      .from("staging_import")
-      .delete()
-      .eq("id", row.id);
-
-    if (stagingDeleteError) {
-      alert(
-        `The unit was deleted from Warehouse 2, but its staging copy could not be removed: ${stagingDeleteError.message}`
-      );
-      return;
-    }
+    await fetchStaging();
+    await fetchData();
   }
 
-  alert(
-    `${existingUnits.length} unit(s) pulled out from Warehouse 2.`
-  );
-
-  setSelectedStagingId(null);
-  setStagingEditValues({});
-
-  await fetchStaging();
-  await fetchData();
-}
-
-// ==========================================================
-  // SHELVES
-  // ==========================================================
+  // SHELF CONTROL MANAGEMENT
 
   async function fetchShelves() {
     setShelvesLoading(true);
@@ -1038,6 +1208,9 @@ function Warehouse2({
       .from("warehouse_shelves")
       .select("*")
       .order("rack_and_bay", { ascending: true });
+
+    console.log("SHELVES DATA:", data);
+    console.log("SHELVES ERROR:", error);
 
     if (error) {
       setShelvesError(error.message);
@@ -1053,6 +1226,7 @@ function Warehouse2({
     fetchShelves();
   }, []);
 
+  /*Case-insensitive shelf search.*/
   const filteredShelves = shelfSearchTerm.trim()
     ? shelves.filter((shelf) =>
         String(shelf.rack_and_bay ?? "")
@@ -1069,14 +1243,17 @@ function Warehouse2({
       )
     : [];
 
+  /*Set a shelf to Full or New and Available.*/
   async function handleSetShelfStatus(
-    newStatus: "Full" | "Available" | "New and Available"
+    newStatus: "Full" | "New and Available"
   ) {
     const search = shelfSearchTerm.trim().toLowerCase();
 
     const match = shelves.find(
       (shelf) =>
-        String(shelf.rack_and_bay ?? "").trim().toLowerCase() === search
+        String(shelf.rack_and_bay ?? "")
+          .trim()
+          .toLowerCase() === search
     );
 
     if (!match) {
@@ -1103,6 +1280,7 @@ function Warehouse2({
     fetchShelves();
   }
 
+  /*Add a new shelf.*/
   async function handleAddShelf() {
     const rackAndBay = newShelfName.trim();
 
@@ -1113,8 +1291,9 @@ function Warehouse2({
 
     const alreadyExists = shelves.some(
       (shelf) =>
-        String(shelf.rack_and_bay ?? "").trim().toLowerCase() ===
-        rackAndBay.toLowerCase()
+        String(shelf.rack_and_bay ?? "")
+          .trim()
+          .toLowerCase() === rackAndBay.toLowerCase()
     );
 
     if (alreadyExists) {
@@ -1122,10 +1301,12 @@ function Warehouse2({
       return;
     }
 
-    const { error } = await supabase.from("warehouse_shelves").insert({
-      rack_and_bay: rackAndBay.toUpperCase(),
-      status: "New and Available",
-    });
+    const { error } = await supabase
+      .from("warehouse_shelves")
+      .insert({
+        rack_and_bay: rackAndBay.toUpperCase(),
+        status: "New and Available",
+      });
 
     if (error) {
       alert(`Could not add shelf: ${error.message}`);
@@ -1138,6 +1319,7 @@ function Warehouse2({
     fetchShelves();
   }
 
+  /*Remove an existing shelf.*/
   async function handleRemoveShelf() {
     const search = newShelfName.trim().toLowerCase();
 
@@ -1148,11 +1330,15 @@ function Warehouse2({
 
     const match = shelves.find(
       (shelf) =>
-        String(shelf.rack_and_bay ?? "").trim().toLowerCase() === search
+        String(shelf.rack_and_bay ?? "")
+          .trim()
+          .toLowerCase() === search
     );
 
     if (!match) {
-      alert("Please select an existing shelf from the suggestions first.");
+      alert(
+        "Please select an existing shelf from the suggestions first."
+      );
       return;
     }
 
@@ -1178,15 +1364,12 @@ function Warehouse2({
     fetchShelves();
   }
 
-  // ==========================================================
-  // UI
-  // ==========================================================
-
   return (
     <main className="page">
       <header className="header">
         <img src={logo} alt="Adventus" className="logo" />
 
+        {/* SEARCH AND FILTER */}
         <input
           type="text"
           placeholder="Search & Filter...."
@@ -1208,15 +1391,14 @@ function Warehouse2({
             <span>Computer Equipment</span>
           </button>
 
-          <button className="sideItem"  
-            onClick={onWarehouse3}>
+          <button className="sideItem" onClick={onWarehouse3}>
             <span>Warehouse 3:</span>
             <span>Yubikeys</span>
           </button>
 
           {isSuperuser && (
             <button className="sideItem" onClick={onSuperuser}>
-              <span>Superuser</span>
+              Superuser
               <span>Controls</span>
             </button>
           )}
@@ -1228,10 +1410,9 @@ function Warehouse2({
 
         <section
           className="content"
-          style={{
-            backgroundImage: `url(${background})`,
-          }}
+          style={{ backgroundImage: `url(${background})` }}
         >
+          {/* TOP ACTION BAR */}
           <div className="top">
             <button
               className="exportButton"
@@ -1268,9 +1449,10 @@ function Warehouse2({
           </div>
 
           <div className="mainGrid">
+            {/* LEFT AREA */}
             <div className="leftArea">
               <div className="cards">
-                {/* ADD COLUMN */}
+                {/* ADD DATA COLUMNS */}
                 <div className="card">
                   <h2>Add Data Columns</h2>
 
@@ -1291,7 +1473,9 @@ function Warehouse2({
                     <option value="timestamptz">Date</option>
                   </select>
 
-                  <button onClick={handleAddColumn}>Add Column</button>
+                  <button onClick={handleAddColumn}>
+                    Add Column
+                  </button>
                 </div>
 
                 {/* EDIT DATA */}
@@ -1305,7 +1489,9 @@ function Warehouse2({
                         type="text"
                         placeholder="Search by hostname"
                         value={searchUnitTerm}
-                        onChange={(e) => setSearchUnitTerm(e.target.value)}
+                        onChange={(e) =>
+                          setSearchUnitTerm(e.target.value)
+                        }
                       />
 
                       <div className="searchResults">
@@ -1324,23 +1510,16 @@ function Warehouse2({
                   {selectedUnitId && (
                     <div className="editForm">
                       {columns.map(
-                        (column) =>
-                          ![
-                            "id",
-                            "created_at",
-                            "created_by",
-                            "updated_at",
-                            "updated_by",
-                          ].includes(column) && (
-                            <div className="editField" key={column}>
-                              <label>{column}</label>
-
+                        (col) =>
+                          col !== "id" && (
+                            <div className="editField" key={col}>
+                              <label>{col}</label>
                               <input
                                 type="text"
-                                value={editValues[column] ?? ""}
+                                value={editValues[col] ?? ""}
                                 onChange={(e) =>
                                   handleEditFieldChange(
-                                    column,
+                                    col,
                                     e.target.value
                                   )
                                 }
@@ -1350,8 +1529,9 @@ function Warehouse2({
                       )}
 
                       <div className="editFormButtons">
-                        <button onClick={handleSaveUnit}>Save</button>
-
+                        <button onClick={handleSaveUnit}>
+                          Save
+                        </button>
                         <button onClick={handleCancelUnitEdit}>
                           Cancel
                         </button>
@@ -1361,7 +1541,27 @@ function Warehouse2({
                 </div>
               </div>
 
-              {/* MAIN TABLE */}
+              {/* BULK INVENTORY ACTIONS */}
+              <div className="inventoryBulkActions">
+                <span>
+                  {selectedInventoryIds.length} unit(s) selected
+                </span>
+
+                <button
+                  type="button"
+                  disabled={
+                    selectedInventoryIds.length === 0 ||
+                    stagingInventory
+                  }
+                  onClick={handleStageSelectedInventory}
+                >
+                  {stagingInventory
+                    ? "Staging..."
+                    : `Stage Selected (${selectedInventoryIds.length})`}
+                </button>
+              </div>
+
+              {/* MAIN INVENTORY TABLE */}
               <div className="table">
                 <div className="tableBody">
                   {loading && (
@@ -1374,45 +1574,93 @@ function Warehouse2({
                     </div>
                   )}
 
-                  {!loading && !error && (
-                    <>
-                      <div className="tableRow tableHeaderRow">
-                        {columns
-                          .filter((col) => col !== "id")
-                          .map((col) => (
-                            <span key={col}>{col}</span>
-                          ))}
+                  <div className="tableRow tableHeaderRow">
+                    <span className="inventoryCheckboxCell">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all visible inventory units"
+                        checked={
+                          filteredRows.length > 0 &&
+                          filteredRows
+                            .filter(
+                              (row) =>
+                                !stagingRows.some(
+                                  (staged) =>
+                                    String(staged.source_unit_id) ===
+                                    String(row.id)
+                                )
+                            )
+                            .every((row) =>
+                              selectedInventoryIds.includes(
+                                String(row.id)
+                              )
+                            )
+                        }
+                        onChange={toggleSelectAllInventory}
+                      />
+                    </span>
 
-                        <span>QR</span>
-                      </div>
-
-                      {filteredRows.map((row) => (
-                        <div className="tableRow" key={row.id}>
-                          {columns
-                            .filter((col) => col !== "id")
-                            .map((col) => (
-                              <span key={col}>{String(row[col] ?? "")}</span>
-                            ))}
-
-                          <span>
-                            <button
-                              onClick={() => handleGenerateQRCode(row)}
-                            >
-                              Generate QR
-                            </button>
-                          </span>
-                        </div>
+                    {columns
+                      .filter((col) => col !== "id")
+                      .map((col) => (
+                        <span key={col}>{col}</span>
                       ))}
-                    </>
-                  )}
+
+                    <span>QR</span>
+                  </div>
+
+                  {filteredRows.map((row) => (
+                    <div className="tableRow" key={row.id}>
+                      <span className="inventoryCheckboxCell">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${row.hostname || row.id}`}
+                          checked={selectedInventoryIds.includes(
+                            String(row.id)
+                          )}
+                          disabled={
+                            stagingInventory ||
+                            stagingRows.some(
+                              (staged) =>
+                                String(staged.source_unit_id) ===
+                                String(row.id)
+                            )
+                          }
+                          onChange={() =>
+                            toggleInventorySelection(
+                              String(row.id)
+                            )
+                          }
+                        />
+                      </span>
+
+                      {columns
+                        .filter((col) => col !== "id")
+                        .map((col) => (
+                          <span key={col}>
+                            {String(row[col] ?? "")}
+                          </span>
+                        ))}
+
+                      <span>
+                        <button
+                          onClick={() =>
+                            handleGenerateQRCode(row)
+                          }
+                        >
+                          Generate QR
+                        </button>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
             {/* RIGHT AREA */}
             <div className="rightArea">
+              {/* SHELF CONTROL MANAGEMENT */}
               <div className="rightControls">
-                {/* SET SHELF STATUS */}
                 <div className="row">
                   <div className="shelfSearchWrapper">
                     <input
@@ -1472,14 +1720,16 @@ function Warehouse2({
                   <button
                     className="smallButton"
                     onClick={() =>
-                      handleSetShelfStatus("Available")
+                      handleSetShelfStatus(
+                        "New and Available"
+                      )
                     }
                   >
                     Available
                   </button>
                 </div>
 
-                {/* ADD / REMOVE SHELF */}
+                {/* ADD OR REMOVE SHELF */}
                 <div className="row">
                   <div className="shelfSearchWrapper">
                     <input
@@ -1531,20 +1781,14 @@ function Warehouse2({
                     Remove
                   </button>
                 </div>
-
-                {shelvesError && (
-                  <div className="shelfError">
-                    {shelvesError}
-                  </div>
-                )}
               </div>
 
-              {/* STAGE SETS */}
+              {/* STAGING CARD */}
               <div className="stageCard">
                 <h2>Stage Sets</h2>
 
                 <div className="stageItem">
-                  <label>Input</label>
+                  <label>Search and Input</label>
 
                   <input
                     type="text"
@@ -1556,18 +1800,105 @@ function Warehouse2({
                   />
                 </div>
 
-                <div className="searchResults">
-                  {unitSearchResults.map((row) => (
-                    <button
-                      key={`${row._sourceTable}-${row.id}`}
-                      onClick={() => handleStageUnit(row)}
-                    >
-                      {row.hostname || "(no hostname)"} —{" "}
-                      {row.equipment_type || "Unknown Equipment"}
-                    </button>
-                  ))}
+                {/* BULK STAGING SEARCH RESULTS */}
+                <div className="searchResults bulkStageResults">
+                  {unitSearchResults.length > 0 && (
+                    <>
+                      <label className="bulkStageSelectAll">
+                        <input
+                          type="checkbox"
+                          checked={unitSearchResults
+                            .filter(
+                              (row) =>
+                                !stagingRows.some(
+                                  (staged) =>
+                                    staged.source_unit_id ===
+                                    row.id
+                                )
+                            )
+                            .every((row) =>
+                              selectedStageIds.includes(
+                                String(row.id)
+                              )
+                            )}
+                          onChange={toggleSelectAll}
+                        />
+                        Select All Available
+                      </label>
+
+                      <div className="bulkStageList">
+                        {unitSearchResults.map((row) => {
+                          const alreadyStaged =
+                            stagingRows.some(
+                              (staged) =>
+                                staged.source_unit_id ===
+                                row.id
+                            );
+
+                          return (
+                            <label
+                              key={row.id}
+                              className={`bulkStageItem ${
+                                alreadyStaged
+                                  ? "alreadyStaged"
+                                  : ""
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedStageIds.includes(
+                                  String(row.id)
+                                )}
+                                disabled={
+                                  alreadyStaged ||
+                                  bulkStaging
+                                }
+                                onChange={() =>
+                                  toggleStageSelection(
+                                    String(row.id)
+                                  )
+                                }
+                              />
+
+                              <span>
+                                <strong>
+                                  {row.hostname ||
+                                    "No hostname"}
+                                </strong>
+                                <small>
+                                  {row.serial_number ||
+                                    "No serial number"}
+                                </small>
+                              </span>
+
+                              {alreadyStaged && (
+                                <small>
+                                  Already staged
+                                </small>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="bulkStageButton"
+                        disabled={
+                          selectedStageIds.length === 0 ||
+                          bulkStaging
+                        }
+                        onClick={handleStageSelected}
+                      >
+                        {bulkStaging
+                          ? "Staging..."
+                          : `Stage Selected (${selectedStageIds.length})`}
+                      </button>
+                    </>
+                  )}
                 </div>
 
+                {/* STAGED ITEMS */}
                 <h3>
                   Staged Items ({stagingRows.length})
                 </h3>
@@ -1590,7 +1921,7 @@ function Warehouse2({
                       }
                     >
                       {row.hostname || "(no hostname)"} —{" "}
-                      {row.equipment_type || "Unknown Equipment"}
+                      {row.equipment_type}
                       {row.source_unit_id
                         ? " (editing)"
                         : " (new)"}
@@ -1598,6 +1929,7 @@ function Warehouse2({
                   ))}
                 </div>
 
+                {/* EDIT STAGED ITEM */}
                 {selectedStagingId && (
                   <div className="editForm">
                     {Object.keys(stagingEditValues)
@@ -1613,11 +1945,11 @@ function Warehouse2({
                           key={field}
                         >
                           <label>{field}</label>
-
                           <input
                             type="text"
                             value={
-                              stagingEditValues[field] ?? ""
+                              stagingEditValues[field] ??
+                              ""
                             }
                             onChange={(e) =>
                               handleStagingFieldChange(
@@ -1657,9 +1989,13 @@ function Warehouse2({
                   Commit All ({stagingRows.length})
                 </button>
               </div>
+
+              {/* BOTTOM BUTTONS */}
               <div className="bottomButtons">
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() =>
+                    fileInputRef.current?.click()
+                  }
                   disabled={importing}
                 >
                   {importing
@@ -1687,36 +2023,162 @@ function Warehouse2({
         </section>
       </div>
 
+      {/* DUPLICATE CSV POPUP */}
+      {showDuplicatePopup && (
+        <div className="popupOverlay">
+          <div className="popupBox duplicatePopup">
+            <h2>Duplicate Units Found</h2>
+
+            <p>
+              {duplicateRows.length} imported unit(s)
+              already exist in Warehouse 2.
+            </p>
+
+            <div className="duplicateList">
+              {duplicateRows.map(
+                (duplicate, index) => (
+                  <div
+                    className="duplicateItem"
+                    key={index}
+                  >
+                    <h3>
+                      {duplicate.imported.hostname ||
+                        duplicate.imported.serial_number ||
+                        "Unknown Unit"}
+                    </h3>
+
+                    {duplicate.conflictType ===
+                      "serial_conflict" && (
+                      <p>
+                        Warning: this serial number
+                        belongs to another existing unit.
+                      </p>
+                    )}
+
+                    <div className="duplicateComparison">
+                      <div>
+                        <strong>Existing</strong>
+                        <p>
+                          Hostname:{" "}
+                          {duplicate.existing.hostname ||
+                            "-"}
+                        </p>
+                        <p>
+                          Serial:{" "}
+                          {duplicate.existing.serial_number ||
+                            "-"}
+                        </p>
+                        <p>
+                          Status:{" "}
+                          {duplicate.existing.status ||
+                            "-"}
+                        </p>
+                        <p>
+                          Shelf:{" "}
+                          {duplicate.existing.shelf ||
+                            "-"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <strong>Imported</strong>
+                        <p>
+                          Hostname:{" "}
+                          {duplicate.imported.hostname ||
+                            "-"}
+                        </p>
+                        <p>
+                          Serial:{" "}
+                          {duplicate.imported.serial_number ||
+                            "-"}
+                        </p>
+                        <p>
+                          Status:{" "}
+                          {duplicate.imported.status ||
+                            "-"}
+                        </p>
+                        <p>
+                          Shelf:{" "}
+                          {duplicate.imported.shelf ||
+                            "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="popupButtons">
+                      <button
+                        onClick={() =>
+                          handleReplaceDuplicate(index)
+                        }
+                        disabled={
+                          duplicate.conflictType ===
+                          "serial_conflict"
+                        }
+                      >
+                        Replace Existing
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleKeepExisting(index)
+                        }
+                      >
+                        Keep Existing
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+
+            <div className="popupButtons">
+              <button
+                onClick={handleReplaceAllDuplicates}
+              >
+                Replace All
+              </button>
+
+              <button
+                onClick={handleKeepAllExisting}
+              >
+                Keep All Existing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LOG INVENTORY POPUP */}
       {showLogPopup && (
         <div className="popupOverlay">
           <div className="popupBox">
-            <h2>Log New Computer Equipment</h2>
+            <h2>Log New Unit</h2>
 
             {columns
               .filter(
-                (column) =>
+                (col) =>
                   ![
                     "id",
                     "created_at",
                     "updated_at",
                     "created_by",
                     "updated_by",
-                  ].includes(column)
+                  ].includes(col)
               )
-              .map((column) => (
+              .map((col) => (
                 <div
                   className="popupField"
-                  key={column}
+                  key={col}
                 >
-                  <label>{column}</label>
-
+                  <label>{col}</label>
                   <input
                     type="text"
-                    value={logFormValues[column] ?? ""}
+                    value={
+                      logFormValues[col] ?? ""
+                    }
                     onChange={(e) =>
                       handleLogFieldChange(
-                        column,
+                        col,
                         e.target.value
                       )
                     }

@@ -1801,17 +1801,164 @@ body,
   cursor: not-allowed;
 }
 
-.page .stageCard {
-  flex: 1 1 auto;
-  height: auto;
-  max-height: calc(100% - 60px);
+.duplicatePopup {
+  max-width: 750px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.page .rightArea .bottomButtons {
+.duplicateList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.duplicateItem {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.duplicateItem h3 {
+  margin-top: 0;
+}
+
+.duplicateComparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.duplicateComparison p {
+  margin: 4px 0;
+}
+
+/* BULK STAGING */
+
+.bulkStageResults {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.bulkStageSelectAll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.bulkStageList {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bulkStageItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bulkStageItem:hover {
+  background: #eaf1ff;
+}
+
+.bulkStageItem input,
+.bulkStageSelectAll input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.bulkStageItem span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bulkStageItem small {
+  font-size: 11px;
+  color: #666;
+}
+
+.bulkStageItem.alreadyStaged {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bulkStageButton {
+  padding: 11px;
+  background: #174ea6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.bulkStageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* INVENTORY CHECKBOX BULK STAGING */
+
+.inventoryBulkActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.inventoryBulkActions span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inventoryBulkActions button {
+  padding: 9px 14px;
+  background: #174ea6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.inventoryBulkActions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tableRow .inventoryCheckboxCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 42px;
-  height: 42px;
-  min-height: 42px;
-  margin-top: 10px;
+  min-width: 42px;
+}
+
+.inventoryCheckboxCell input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .page .content {
