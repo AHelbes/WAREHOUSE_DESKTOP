@@ -175,11 +175,11 @@ function Superuser({
 
   function formatWarehouse(warehouse: string | null) {
     if (warehouse === "warehouse_1") {
-      return "Warehouse 1";
+      return "Laptops";
     }
 
     if (warehouse === "warehouse_2") {
-      return "Warehouse 2";
+      return "Computer Equipment";
     }
 
     return "No activity";
@@ -539,12 +539,12 @@ function getWarehousePrefix(row: Record<string, any>) {
 
     const warehouseLabel =
       monthlyWarehouse === "all"
-        ? "All Warehouses"
+        ? "All Assets"
         : monthlyWarehouse === "warehouse_laptops"
-        ? "Warehouse 1"
+        ? "Laptops"
         : monthlyWarehouse === "warehouse_ce"
-        ? "Warehouse 2"
-        : "Warehouse 3";
+        ? "Computer Equipment"
+        : "Yubikeys";
 
     const pdf = new jsPDF({
       orientation: "landscape",
@@ -886,7 +886,6 @@ function getWarehousePrefix(row: Record<string, any>) {
             className="sideItem"
             onClick={onWarehouse1}
           >
-            <span>Warehouse 1:</span>
             <span>Laptops</span>
           </button>
 
@@ -894,7 +893,6 @@ function getWarehousePrefix(row: Record<string, any>) {
             className="sideItem"
             onClick={onWarehouse2}
           >
-            <span>Warehouse 2:</span>
             <span>Computer Equipment</span>
           </button>
 
@@ -902,7 +900,6 @@ function getWarehousePrefix(row: Record<string, any>) {
             className="sideItem"
             onClick={onWarehouse3}
           >
-            <span>Warehouse 3:</span>
             <span>Yubikeys</span>
           </button>
 
@@ -1087,19 +1084,19 @@ function getWarehousePrefix(row: Record<string, any>) {
                         }
                       >
                         <option value="all">
-                          All Warehouses
+                          All Assets
                         </option>
 
                         <option value="warehouse_laptops">
-                          Warehouse 1
+                          Laptops
                         </option>
 
                         <option value="warehouse_ce">
-                          Warehouse 2
+                          Computer Equipment
                         </option>
 
                         <option value="warehouse_yubikeys">
-                          Warehouse 3
+                          Yubikeys
                         </option>
                       </select>
 
@@ -1408,15 +1405,15 @@ function getWarehousePrefix(row: Record<string, any>) {
                   >
 
                     <option value="warehouse_laptops">
-                      Warehouse 1: Laptops
+                      Laptops
                     </option>
 
                     <option value="warehouse_ce">
-                      Warehouse 2: Computer Equipment
+                      Computer Equipment
                     </option>
 
                     <option value="warehouse_yubikeys">
-                      Warehouse 3: Yubikeys
+                      Yubikeys
                     </option>
 
                   </select>

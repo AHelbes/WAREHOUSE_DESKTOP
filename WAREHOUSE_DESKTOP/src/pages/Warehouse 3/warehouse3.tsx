@@ -24,7 +24,11 @@ type WarehouseRow = Record<string, any>;
 type DuplicateRow = {
   imported: WarehouseRow;
   existing: WarehouseRow;
-  conflictType: "hostname_conflict" | "serial_conflict";
+  conflictType:
+    | "hostname_conflict"
+    | "serial_conflict"
+    | "identifier_conflict"
+    | null;
 };
 
 const WAREHOUSE_TABLE = "warehouse_yubikeys";
@@ -194,153 +198,143 @@ function Warehouse3({
      CSV IMPORT
   ========================= */
 
+  /*Function for importing CSV files.*/
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!file) return;
+  setImporting(true);
 
-    setImporting(true);
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
 
-    Papa.parse<WarehouseRow>(file, {
-      header: true,
-      skipEmptyLines: true,
+    complete: async (results) => {
+      const parsedRows = results.data as Record<string, string>[];
 
-      complete: async (results) => {
-        try {
-          const parsedRows = results.data.map((row) => ({
-            ...row,
-            equipment_type: EQUIPMENT_TYPE,
-          }));
-
-          if (parsedRows.length === 0) {
-            alert("The CSV contains no rows.");
-            return;
-          }
-
-          const { data: existingUnits, error: existingError } = await supabase
-            .from(WAREHOUSE_TABLE)
-            .select("*");
-
-          if (existingError) {
-            throw existingError;
-          }
-
-          const existing = existingUnits ?? [];
-
-          const newRows: WarehouseRow[] = [];
-
-          const duplicates: DuplicateRow[] = [];
-
-          const seenHostnames = new Set<string>();
-
-          const seenSerialNumbers = new Set<string>();
-
-          for (const importedRow of parsedRows) {
-            const importedHostname = String(importedRow.hostname ?? "")
-              .trim()
-              .toLowerCase();
-
-            const importedSerial = String(importedRow.serial_number ?? "")
-              .trim()
-              .toLowerCase();
-
-            if (!importedHostname && !importedSerial) {
-              console.warn(
-                "Skipping CSV row without hostname or serial number:",
-                importedRow
-              );
-              continue;
-            }
-
-            if (
-              (importedHostname && seenHostnames.has(importedHostname)) ||
-              (importedSerial && seenSerialNumbers.has(importedSerial))
-            ) {
-              console.warn("Skipping repeated row within CSV:", importedRow);
-              continue;
-            }
-
-            if (importedHostname) {
-              seenHostnames.add(importedHostname);
-            }
-
-            if (importedSerial) {
-              seenSerialNumbers.add(importedSerial);
-            }
-
-            const hostnameMatch = importedHostname
-              ? existing.find(
-                  (unit) =>
-                    String(unit.hostname ?? "")
-                      .trim()
-                      .toLowerCase() === importedHostname
-                )
-              : undefined;
-
-            const serialMatch = importedSerial
-              ? existing.find(
-                  (unit) =>
-                    String(unit.serial_number ?? "")
-                      .trim()
-                      .toLowerCase() === importedSerial
-                )
-              : undefined;
-
-            if (hostnameMatch) {
-              duplicates.push({
-                imported: importedRow,
-                existing: hostnameMatch,
-                conflictType: "hostname_conflict",
-              });
-            } else if (serialMatch) {
-              duplicates.push({
-                imported: importedRow,
-                existing: serialMatch,
-                conflictType: "serial_conflict",
-              });
-            } else {
-              newRows.push(importedRow);
-            }
-          }
-
-          if (newRows.length > 0) {
-            const { error: insertError } = await supabase
-              .from("staging_import")
-              .insert(newRows);
-
-            if (insertError) {
-              throw insertError;
-            }
-          }
-
-          await fetchStaging();
-
-          if (duplicates.length > 0) {
-            setDuplicateRows(duplicates);
-            setShowDuplicatePopup(true);
-          } else {
-            alert(`${newRows.length} new YubiKey unit(s) staged successfully.`);
-          }
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Unknown import error";
-
-          alert(`CSV import failed: ${message}`);
-          console.error("CSV import error:", err);
-        } finally {
-          setImporting(false);
-          e.target.value = "";
-        }
-      },
-
-      error: (err) => {
-        console.error("CSV parsing error:", err);
-        alert(`Could not read CSV: ${err.message}`);
+      if (parsedRows.length === 0) {
+        alert("The CSV contains no rows.");
         setImporting(false);
         e.target.value = "";
-      },
-    });
-  }
+        return;
+      }
+
+      const { data: existingUnits, error: existingError } = await supabase
+        .from("warehouse_laptops")
+        .select("*");
+
+      if (existingError) {
+        alert(`Could not check existing units: ${existingError.message}`);
+        setImporting(false);
+        e.target.value = "";
+        return;
+      }
+
+      const newRows: Record<string, any>[] = [];
+      const duplicates: DuplicateRow[] = [];
+
+      for (const importedRow of parsedRows) {
+        const importedHostname = String(
+          importedRow.hostname ?? ""
+        )
+          .trim()
+          .toLowerCase();
+
+        const importedSerial = String(
+          importedRow.serial_number ?? ""
+        )
+          .trim()
+          .toLowerCase();
+
+        const cleanedImportedRow = {
+          ...importedRow,
+          equipment_type: "LAPTOP",
+        };
+
+        const hostnameMatch = importedHostname
+          ? (existingUnits ?? []).find(
+              (unit) =>
+                String(unit.hostname ?? "")
+                  .trim()
+                  .toLowerCase() === importedHostname
+            )
+          : undefined;
+
+        const serialMatch = importedSerial
+          ? (existingUnits ?? []).find(
+              (unit) =>
+                String(unit.serial_number ?? "")
+                  .trim()
+                  .toLowerCase() === importedSerial
+            )
+          : undefined;
+          
+          if (
+            serialMatch &&
+            hostnameMatch &&
+            serialMatch.id !== hostnameMatch.id
+          ) {
+            // Hostname and serial number belong to different units.
+            // Do not automatically replace either unit.
+            duplicates.push({
+              imported: cleanedImportedRow,
+              existing: serialMatch,
+              conflictType: "identifier_conflict",
+            });
+
+          } else if (serialMatch) {
+          // Serial number matches an existing unit.
+          duplicates.push({
+            imported: cleanedImportedRow,
+            existing: serialMatch,
+            conflictType: null,
+          });
+          } else if (hostnameMatch) {
+            // No serial match, but hostname matches an existing unit.
+            duplicates.push({
+              imported: cleanedImportedRow,
+              existing: hostnameMatch,
+              conflictType: null,
+            });
+          } else {
+            // Neither identifier matches.
+            newRows.push(cleanedImportedRow);
+          }
+          }
+
+      if (newRows.length > 0) {
+        const { error: insertError } = await supabase
+          .from("staging_import")
+          .insert(newRows);
+
+        if (insertError) {
+          alert(`Import failed: ${insertError.message}`);
+          setImporting(false);
+          e.target.value = "";
+          return;
+        }
+      }
+
+      await fetchStaging();
+
+      if (duplicates.length > 0) {
+        setDuplicateRows(duplicates);
+        setShowDuplicatePopup(true);
+      } else {
+        alert(`${newRows.length} new unit(s) staged successfully.`);
+      }
+
+      setImporting(false);
+      e.target.value = "";
+    },
+
+    error: (err) => {
+      alert(`Could not read file: ${err.message}`);
+      setImporting(false);
+      e.target.value = "";
+    },
+  });
+}
 
   /* =========================
      DUPLICATE HANDLING
@@ -364,9 +358,9 @@ function Warehouse3({
   }
 
   async function replaceExistingUnit(duplicate: DuplicateRow) {
-    if (duplicate.conflictType === "serial_conflict") {
+    if (duplicate.conflictType === "identifier_conflict") {
       throw new Error(
-        "This imported YubiKey has a serial number belonging to another unit. Correct the CSV data before replacing it."
+       "The imported hostname and serial number belong to two different existing YubiKeys. Correct the CSV data before replacing."
       );
     }
 
@@ -406,81 +400,130 @@ function Warehouse3({
     );
   }
 
-  async function handleReplaceDuplicate(index: number) {
-    const duplicate = duplicateRows[index];
+async function handleReplaceDuplicate(index: number) {
+  const duplicate = duplicateRows[index];
 
-    if (!duplicate || replacingDuplicates) return;
+  if (!duplicate) return;
 
-    setReplacingDuplicates(true);
+  const existingUnit = duplicate.existing;
+  const importedUnit = duplicate.imported;
 
-    try {
-      await replaceExistingUnit(duplicate);
+  const {
+    id,
+    created_at,
+    created_by,
+    updated_at,
+    updated_by,
+    ...replacementData
+  } = importedUnit;
 
-      await fetchData();
+  const { error } = await supabase
+    .from("warehouse_laptops")
+    .update({
+      ...replacementData,
+      equipment_type: "LAPTOP",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", existingUnit.id);
 
-      setDuplicateRows((current) => {
-        const updated = current.filter((_, i) => i !== index);
+    console.log("Replacing:", {
+  existingHostname: existingUnit.hostname,
+  importedHostname: importedUnit.hostname,
+  serialNumber: importedUnit.serial_number,
+});
 
-        if (updated.length === 0) {
-          setShowDuplicatePopup(false);
-        }
+console.log("Supabase update error:", error);
 
-        return updated;
-      });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Could not replace unit";
-
-      alert(message);
-    } finally {
-      setReplacingDuplicates(false);
-    }
+  if (error) {
+    alert(`Could not replace unit: ${error.message}`);
+    return;
   }
 
-  async function handleReplaceAllDuplicates() {
-    if (duplicateRows.length === 0 || replacingDuplicates) return;
+  await logUserActivity(
+    "REPLACED FROM CSV",
+    existingUnit.hostname ||
+      existingUnit.serial_number ||
+      existingUnit.id,
+    "Existing Warehouse 1 unit was replaced with data from CSV import."
+  );
 
-    const serialConflict = duplicateRows.find(
-      (duplicate) => duplicate.conflictType === "serial_conflict"
-    );
+  await fetchData();
 
-    if (serialConflict) {
+  setDuplicateRows((current) => {
+    const updated = current.filter((_, i) => i !== index);
+
+    if (updated.length === 0) {
+      setShowDuplicatePopup(false);
+    }
+
+    return updated;
+  });
+}
+
+async function handleReplaceAllDuplicates() {
+  if (duplicateRows.length === 0) return;
+
+  const confirmed = window.confirm(
+    `Replace all ${duplicateRows.length} existing unit(s)?\n\n` +
+    "Existing records will be matched by serial number first, " +
+    "then by hostname.\n\n" +
+    "The imported CSV values will overwrite the matching records."
+  );
+
+  if (!confirmed) return;
+
+  let replacedCount = 0;
+
+  for (const duplicate of duplicateRows) {
+    const existingUnit = duplicate.existing;
+    const importedUnit = duplicate.imported;
+
+    const {
+      id,
+      created_at,
+      created_by,
+      updated_at,
+      updated_by,
+      ...replacementData
+    } = importedUnit;
+
+    const { error } = await supabase
+      .from("warehouse_laptops")
+      .update({
+        ...replacementData,
+        equipment_type: "LAPTOP",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingUnit.id);
+
+    if (error) {
       alert(
-        "Replace All cannot continue because at least one imported serial number belongs to another existing YubiKey. Resolve those conflicts first."
+        `Could not replace ${importedUnit.hostname}: ${error.message}\n\n` +
+        `${replacedCount} unit(s) were already replaced.`
       );
+
+      await fetchData();
       return;
     }
 
-    const confirmed = window.confirm(
-      `Replace all ${duplicateRows.length} existing YubiKey unit(s) with the imported CSV data?`
+    await logUserActivity(
+      "REPLACED FROM CSV",
+      importedUnit.hostname ||
+        importedUnit.serial_number ||
+        existingUnit.id,
+      `Updated existing laptop ${existingUnit.hostname} using CSV data.`
     );
 
-    if (!confirmed) return;
-
-    setReplacingDuplicates(true);
-
-    try {
-      for (const duplicate of duplicateRows) {
-        await replaceExistingUnit(duplicate);
-      }
-
-      await fetchData();
-
-      setDuplicateRows([]);
-      setShowDuplicatePopup(false);
-
-      alert("All duplicate YubiKey units were replaced successfully.");
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Could not replace all units";
-
-      alert(message);
-
-      await fetchData();
-    } finally {
-      setReplacingDuplicates(false);
-    }
+    replacedCount++;
   }
+
+  await fetchData();
+
+  setDuplicateRows([]);
+  setShowDuplicatePopup(false);
+
+  alert(`${replacedCount} existing unit(s) replaced successfully.`);
+}
 
   /* =========================
      STAGING FUNCTIONS
@@ -1772,7 +1815,6 @@ function Warehouse3({
             className="sideItem"
             onClick={onWarehouse1}
           >
-            <span>Warehouse 1:</span>
             <span>Laptops</span>
           </button>
 
@@ -1780,12 +1822,10 @@ function Warehouse3({
             className="sideItem"
             onClick={onWarehouse2}
           >
-            <span>Warehouse 2:</span>
             <span>Computer Equipment</span>
           </button>
 
           <button className="sideItem active">
-            <span>Warehouse 3:</span>
             <span>Yubikeys</span>
           </button>
 
