@@ -618,42 +618,86 @@
     clamp(10px, 1.2vw, 16px)
     clamp(12px, 2vw, 35px);
 }
-
 .superPage .monthlyHeader {
-  width: 100%;
-
-  min-width: 0;
-
-  flex: 0 0 auto;
-
   display: flex;
   align-items: center;
-
-  gap: clamp(5px, 0.8vw, 10px);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 20px;
+  box-sizing: border-box;
 }
 
 .superPage .monthlyHeader h2 {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* All filters on the same line */
+
+.superPage .monthlyFilters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
   min-width: 0;
+}
 
-  margin: 0 auto 0 0;
+/* Warehouse dropdown */
 
-  font-size: clamp(15px, 1.7vw, 25px);
+.superPage .monthlyFilters .warehouseSelect {
+  width: 145px;
+  min-width: 130px;
+  height: 38px;
+  flex-shrink: 0;
+}
 
+/* From / To date groups */
+
+.superPage .monthlyFilters .dateRangeGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Labels */
+
+.superPage .monthlyFilters .dateRangeLabel,
+.superPage .monthlyFilters .dateRangeSeparator {
+  font-size: 14px;
+  font-weight: 500;
+  color: #17264d;
   white-space: nowrap;
 }
 
-.superPage .monthlyHeader select {
-  min-width: 0;
+/* All dropdowns */
 
-  padding: clamp(4px, 0.5vw, 6px)
-    clamp(6px, 0.8vw, 10px);
+.superPage .monthlyFilters select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #cccccc;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #222222;
+  font-size: 14px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
 
-  border: 1px solid #ccc;
-  border-radius: 6px;
+/* Month dropdown */
 
-  background: white;
+.superPage .dateRangeGroup select:first-of-type {
+  width: 125px;
+}
 
-  font-size: clamp(9px, 0.8vw, 13px);
+/* Year dropdown */
+
+.superPage .dateRangeGroup select:last-of-type {
+  width: 90px;
 }
 
 .superPage .monthlyTable {
@@ -1361,3 +1405,40 @@
     font-size: 7px;
   }
 }
+
+@media (max-width: 1200px) {
+  .superPage .monthlyHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .superPage .monthlyFilters {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 650px) {
+  .superPage .monthlyFilters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .superPage .monthlyFilters .warehouseSelect {
+    width: 100%;
+  }
+
+  .superPage .monthlyFilters .dateRangeGroup {
+    width: 100%;
+  }
+
+  .superPage .monthlyFilters .dateRangeGroup select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .superPage .monthlyFilters .dateRangeSeparator {
+    display: none;
+  }
+}
+
