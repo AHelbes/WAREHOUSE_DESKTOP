@@ -1,5 +1,12 @@
 # Warehouse Desktop Application — Adventus IT Services
 
+## 👥 Contributors
+
+| Name | GitHub |
+|---|---|
+| ALEAH BALAGAO | AHelbes |
+| KARRIN FRIDA TOLENTINO NOVERO | Rin1803 |
+
 ## 1. Project Overview
 
 The Warehouse Desktop Application is a desktop-based inventory management system developed for Adventus IT Services.
