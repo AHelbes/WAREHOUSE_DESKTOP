@@ -80,7 +80,7 @@ function Warehouse1({
     }[]
   >([]);
   const [shelvesLoading, setShelvesLoading] = useState(true);
-  const [shelvesError, setShelvesError] = useState<string | null>(null);
+  const [, setShelvesError] = useState<string | null>(null);
   const [shelfSearchTerm, setShelfSearchTerm] = useState("");
   const [newShelfName, setNewShelfName] = useState("");
 

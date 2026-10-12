@@ -12,8 +12,6 @@ import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import { openUrl } from "@tauri-apps/plugin-opener";
-
 type SuperuserProps = {
   onBack: () => void;
   onWarehouse1: () => void;
@@ -196,16 +194,6 @@ function Superuser({
 
     return new Date(timestamp).toLocaleString();
   }
-
-  /* =========================================================
-     RESET PASSWORD
-     ========================================================= */
-
-  const handleResetPassword = async () => {
-    await openUrl(
-      "https://warehouse-auth-dusky.vercel.app/"
-    );
-  };
 
   /* =========================================================
      MONTHLY WAREHOUSE
@@ -1336,28 +1324,6 @@ function getWarehousePrefix(row: Record<string, any>) {
                       </p>
 
                     </div>
-
-                    {/*
-                    <div className="userActions">
-                      <button
-                        onClick={handleResetPassword}
-                      >
-                        Reset Password
-                      </button>
-                    </div>
-                    */}
-
-                    {/*
-                    <button
-                      onClick={() =>
-                        handleRemoveUser(
-                          selectedUser
-                        )
-                      }
-                    >
-                      Remove User
-                    </button>
-                    */}
 
                   </>
 

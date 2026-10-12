@@ -46,14 +46,10 @@ function Warehouse3({
   ========================= */
 
   const [importing, setImporting] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [duplicateRows, setDuplicateRows] = useState<DuplicateRow[]>([]);
-
   const [showDuplicatePopup, setShowDuplicatePopup] = useState(false);
-
-  const [replacingDuplicates, setReplacingDuplicates] = useState(false);
+  const [replacingDuplicates] = useState(false);
 
   /* =========================
      SEARCH AND BULK STAGING
@@ -148,11 +144,8 @@ function Warehouse3({
   >([]);
 
   const [shelvesLoading, setShelvesLoading] = useState(true);
-
-  const [shelvesError, setShelvesError] = useState<string | null>(null);
-
+  const [, setShelvesError] = useState<string | null>(null);
   const [shelfSearchTerm, setShelfSearchTerm] = useState("");
-
   const [newShelfName, setNewShelfName] = useState("");
 
   /* =========================
@@ -357,6 +350,7 @@ function Warehouse3({
     setShowDuplicatePopup(false);
   }
 
+  // @ts-ignore TS6133: Reserved for future use
   async function replaceExistingUnit(duplicate: DuplicateRow) {
     if (duplicate.conflictType === "identifier_conflict") {
       throw new Error(
